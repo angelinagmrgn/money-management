@@ -1443,7 +1443,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Jumlah (Rp)</label>
-                        <input type="number" id="transactionAmount" class="form-input" required min="1" placeholder="0">
+                        <input type="text" id="transactionAmount" class="form-input" required placeholder="0" oninput="formatRupiahInput(this)">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Tanggal</label>
@@ -1525,11 +1525,11 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Target Jumlah (Rp)</label>
-                        <input type="number" id="savingTarget" class="form-input" required min="1" placeholder="0">
+                        <input type="text" id="savingTarget" class="form-input" required placeholder="0" oninput="formatRupiahInput(this)">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Jumlah Saat Ini (Rp)</label>
-                        <input type="number" id="savingCurrent" class="form-input" required min="0" value="0" placeholder="0">
+                        <input type="text" id="savingCurrent" class="form-input" required value="0" placeholder="0" oninput="formatRupiahInput(this)">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Target Tanggal</label>
@@ -1559,7 +1559,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Jumlah (Rp)</label>
-                        <input type="number" id="reminderAmount" class="form-input" required min="1" placeholder="0">
+                        <input type="text" id="reminderAmount" class="form-input" required placeholder="0" oninput="formatRupiahInput(this)">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Tanggal Jatuh Tempo</label>
@@ -1585,7 +1585,7 @@
                 <form id="budgetForm" onsubmit="submitBudget(event)">
                     <div class="form-group">
                         <label class="form-label">Budget Bulanan (Rp)</label>
-                        <input type="number" id="budgetAmount" class="form-input" required min="0" placeholder="0">
+                        <input type="text" id="budgetAmount" class="form-input" required placeholder="0" oninput="formatRupiahInput(this)">
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="submit-btn">Simpan</button>
@@ -2051,7 +2051,8 @@
             } else if (type === 'addReminder') {
                 document.getElementById('addReminderModal').classList.add('active');
             } else if (type === 'setBudget') {
-                document.getElementById('budgetAmount').value = budget;
+                const budgetInput = document.getElementById('budgetAmount');
+                budgetInput.value = budget > 0 ? budget.toLocaleString('id-ID') : '';
                 document.getElementById('setBudgetModal').classList.add('active');
             }
         }
@@ -2075,7 +2076,7 @@
             const type = document.getElementById('transactionType').value;
             const categoryId = parseInt(document.getElementById('transactionCategory').value);
             const description = document.getElementById('transactionDesc').value;
-            const amount = parseFloat(document.getElementById('transactionAmount').value);
+            const amount = parseRupiahValue(document.getElementById('transactionAmount').value);
             const date = document.getElementById('transactionDate').value;
             
             const category = categories.find(c => c.id === categoryId);
@@ -2385,14 +2386,14 @@
                             
                             <div class="form-group">
                                 <label class="form-label">Tambah/ Kurang Jumlah (Rp)</label>
-                                <input type="number" id="savingUpdateAmount" class="form-input" 
-                                       placeholder="Masukkan jumlah positif untuk tambah, negatif untuk kurang">
+                                <input type="text" id="savingUpdateAmount" class="form-input" 
+                                       placeholder="Masukkan jumlah positif untuk tambah, negatif untuk kurang" oninput="formatRupiahInput(this)">
                             </div>
                             
                             <div class="form-group">
                                 <label class="form-label">Atau atur jumlah tertentu (Rp)</label>
-                                <input type="number" id="savingSetAmount" class="form-input" 
-                                       value="${saving.currentAmount}" min="0" max="${saving.targetAmount}">
+                                <input type="text" id="savingSetAmount" class="form-input" 
+                                       value="${saving.currentAmount}" oninput="formatRupiahInput(this)">
                             </div>
                             
                             <div class="form-actions">
@@ -2466,10 +2467,10 @@
             if (!saving) return;
             
             if (updateAmount) {
-                const amountChange = parseFloat(updateAmount);
+                const amountChange = parseRupiahValue(updateAmount);
                 updateSavingAmount(id, amountChange);
             } else if (setAmount) {
-                saving.currentAmount = parseFloat(setAmount);
+                saving.currentAmount = parseRupiahValue(setAmount);
                 if (saving.currentAmount < 0) saving.currentAmount = 0;
                 if (saving.currentAmount > saving.targetAmount) saving.currentAmount = saving.targetAmount;
                 
@@ -2485,8 +2486,8 @@
             event.preventDefault();
             
             const name = document.getElementById('savingName').value;
-            const targetAmount = parseFloat(document.getElementById('savingTarget').value);
-            const currentAmount = parseFloat(document.getElementById('savingCurrent').value);
+            const targetAmount = parseRupiahValue(document.getElementById('savingTarget').value);
+            const currentAmount = parseRupiahValue(document.getElementById('savingCurrent').value);
             const targetDate = document.getElementById('savingDate').value;
             
             const saving = {
@@ -2560,7 +2561,7 @@
             event.preventDefault();
             
             const name = document.getElementById('reminderName').value;
-            const amount = parseFloat(document.getElementById('reminderAmount').value);
+            const amount = parseRupiahValue(document.getElementById('reminderAmount').value);
             const dueDate = document.getElementById('reminderDate').value;
             
             const reminder = {
@@ -2591,7 +2592,7 @@
         function submitBudget(event) {
             event.preventDefault();
             
-            budget = parseFloat(document.getElementById('budgetAmount').value);
+            budget = parseRupiahValue(document.getElementById('budgetAmount').value);
             saveData();
             updateBudgetDisplay();
             closeModal();
@@ -2651,68 +2652,95 @@
                 }
             });
             
-            // Generate HTML report
+            // Generate HTML report - RESPONSIVE!
             const reportHTML = `
                 <div style="padding: 16px;">
                     <div style="text-align: center; margin-bottom: 20px;">
-                        <h3 style="color: var(--text); margin-bottom: 8px;">Laporan ${formatDate(startDateStr)} - ${formatDate(endDateStr)}</h3>
+                        <h3 style="color: var(--text); margin-bottom: 8px; font-size: 16px;">Laporan ${formatDate(startDateStr)} - ${formatDate(endDateStr)}</h3>
                         <p style="color: var(--text-light); font-size: 13px;">Total ${periodTransactions.length} transaksi</p>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
-                        <div style="background: rgba(40, 167, 69, 0.1); padding: 12px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px;">PEMASUKAN</div>
-                            <div style="font-size: 16px; font-weight: 800; color: var(--success);">${formatCurrency(income)}</div>
+                    <!-- Ringkasan - Stack di mobile -->
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px;">
+                        <div style="background: rgba(40, 167, 69, 0.1); padding: 16px; border-radius: 10px; 
+                             display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px; 
+                                     text-transform: uppercase; letter-spacing: 0.5px;">PEMASUKAN</div>
+                                <div style="font-size: 18px; font-weight: 800; color: var(--success);">
+                                    Rp ${income.toLocaleString('id-ID')}
+                                </div>
+                            </div>
+                            <i class="fas fa-arrow-down" style="font-size: 24px; color: var(--success); opacity: 0.3;"></i>
                         </div>
-                        <div style="background: rgba(220, 53, 69, 0.1); padding: 12px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px;">PENGELUARAN</div>
-                            <div style="font-size: 16px; font-weight: 800; color: var(--danger);">${formatCurrency(expense)}</div>
+                        <div style="background: rgba(220, 53, 69, 0.1); padding: 16px; border-radius: 10px; 
+                             display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px; 
+                                     text-transform: uppercase; letter-spacing: 0.5px;">PENGELUARAN</div>
+                                <div style="font-size: 18px; font-weight: 800; color: var(--danger);">
+                                    Rp ${expense.toLocaleString('id-ID')}
+                                </div>
+                            </div>
+                            <i class="fas fa-arrow-up" style="font-size: 24px; color: var(--danger); opacity: 0.3;"></i>
                         </div>
                         <div style="background: ${balance >= 0 ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)'}; 
-                             padding: 12px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px;">SALDO</div>
-                            <div style="font-size: 16px; font-weight: 800; color: ${balance >= 0 ? 'var(--success)' : 'var(--danger)'}">
-                                ${formatCurrency(balance)}
+                             padding: 16px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 11px; color: var(--text-light); margin-bottom: 4px; 
+                                     text-transform: uppercase; letter-spacing: 0.5px;">SALDO</div>
+                                <div style="font-size: 18px; font-weight: 800; color: ${balance >= 0 ? 'var(--success)' : 'var(--danger)'}">
+                                    ${balance >= 0 ? 'Rp ' : '- Rp '}${Math.abs(balance).toLocaleString('id-ID')}
+                                </div>
                             </div>
+                            <i class="fas fa-wallet" style="font-size: 24px; color: ${balance >= 0 ? 'var(--success)' : 'var(--danger)'}; opacity: 0.3;"></i>
                         </div>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                        <!-- Pemasukan by Kategori -->
-                        <div>
-                            <h4 style="color: var(--text); margin-bottom: 12px; font-size: 14px;">
-                                <i class="fas fa-arrow-down" style="color: var(--success);"></i> Pemasukan per Kategori
-                            </h4>
+                    <!-- Pemasukan per Kategori -->
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--text); margin-bottom: 12px; font-size: 15px; font-weight: 700; 
+                             display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-arrow-down" style="color: var(--success);"></i> 
+                            Pemasukan per Kategori
+                        </h4>
+                        <div style="background: var(--card-bg); border-radius: 10px; overflow: hidden; 
+                             border: 1px solid var(--border);">
                             ${Object.entries(incomeByCategory).length > 0 ? 
                                 Object.entries(incomeByCategory)
                                     .sort((a, b) => b[1] - a[1])
                                     .map(([category, amount]) => `
                                         <div style="display: flex; justify-content: space-between; 
-                                             align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border);">
-                                            <span style="font-size: 13px;">${category}</span>
-                                            <span style="font-weight: 600; color: var(--success); font-size: 13px;">
-                                                ${formatCurrency(amount)}
+                                             align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border);">
+                                            <span style="font-size: 14px; color: var(--text);">${category}</span>
+                                            <span style="font-weight: 700; color: var(--success); font-size: 14px;">
+                                                Rp ${amount.toLocaleString('id-ID')}
                                             </span>
                                         </div>
                                     `).join('') : 
                                 '<div style="text-align: center; padding: 20px; color: var(--text-light); font-size: 13px;">Tidak ada data</div>'
                             }
                         </div>
-                        
-                        <!-- Pengeluaran by Kategori -->
-                        <div>
-                            <h4 style="color: var(--text); margin-bottom: 12px; font-size: 14px;">
-                                <i class="fas fa-arrow-up" style="color: var(--danger);"></i> Pengeluaran per Kategori
-                            </h4>
+                    </div>
+                    
+                    <!-- Pengeluaran per Kategori -->
+                    <div style="margin-bottom: 20px;">
+                        <h4 style="color: var(--text); margin-bottom: 12px; font-size: 15px; font-weight: 700; 
+                             display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-arrow-up" style="color: var(--danger);"></i> 
+                            Pengeluaran per Kategori
+                        </h4>
+                        <div style="background: var(--card-bg); border-radius: 10px; overflow: hidden; 
+                             border: 1px solid var(--border);">
                             ${Object.entries(expenseByCategory).length > 0 ? 
                                 Object.entries(expenseByCategory)
                                     .sort((a, b) => b[1] - a[1])
                                     .map(([category, amount]) => `
                                         <div style="display: flex; justify-content: space-between; 
-                                             align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border);">
-                                            <span style="font-size: 13px;">${category}</span>
-                                            <span style="font-weight: 600; color: var(--danger); font-size: 13px;">
-                                                ${formatCurrency(amount)}
+                                             align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border);">
+                                            <span style="font-size: 14px; color: var(--text);">${category}</span>
+                                            <span style="font-weight: 700; color: var(--danger); font-size: 14px;">
+                                                Rp ${amount.toLocaleString('id-ID')}
                                             </span>
                                         </div>
                                     `).join('') : 
@@ -2722,29 +2750,36 @@
                     </div>
                     
                     <!-- 10 Transaksi Terbesar -->
-                    <div style="margin-top: 20px;">
-                        <h4 style="color: var(--text); margin-bottom: 12px; font-size: 14px;">
-                            <i class="fas fa-star"></i> 10 Transaksi Terbesar
-                        </h4>
-                        ${periodTransactions
-                            .sort((a, b) => b.amount - a.amount)
-                            .slice(0, 10)
-                            .map(t => `
-                                <div style="display: flex; justify-content: space-between; align-items: center; 
-                                     padding: 8px 0; border-bottom: 1px solid var(--border);">
-                                    <div style="font-size: 13px;">
-                                        <div>${t.description}</div>
-                                        <div style="font-size: 11px; color: var(--text-light);">
-                                            ${t.categoryName} • ${formatDate(t.date)}
+                    ${periodTransactions.length > 0 ? `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: var(--text); margin-bottom: 12px; font-size: 15px; font-weight: 700; 
+                                 display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-star"></i> 10 Transaksi Terbesar
+                            </h4>
+                            <div style="background: var(--card-bg); border-radius: 10px; overflow: hidden; 
+                                 border: 1px solid var(--border);">
+                                ${periodTransactions
+                                    .sort((a, b) => b.amount - a.amount)
+                                    .slice(0, 10)
+                                    .map(t => `
+                                        <div style="display: flex; justify-content: space-between; align-items: flex-start; 
+                                             padding: 12px 16px; border-bottom: 1px solid var(--border);">
+                                            <div style="flex: 1; min-width: 0; margin-right: 12px;">
+                                                <div style="font-size: 14px; font-weight: 600; color: var(--text); 
+                                                     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.description}</div>
+                                                <div style="font-size: 12px; color: var(--text-light); margin-top: 4px;">
+                                                    ${t.categoryName} • ${formatDate(t.date)}
+                                                </div>
+                                            </div>
+                                            <div style="font-weight: 700; color: ${t.type === 'income' ? 'var(--success)' : 'var(--danger)'}; 
+                                                 font-size: 14px; white-space: nowrap;">
+                                                ${t.type === 'income' ? '+' : '-'} Rp ${t.amount.toLocaleString('id-ID')}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div style="font-weight: 600; color: ${t.type === 'income' ? 'var(--success)' : 'var(--danger)'}; 
-                                         font-size: 13px;">
-                                        ${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}
-                                    </div>
-                                </div>
-                            `).join('')}
-                    </div>
+                                    `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
                 </div>
             `;
             
@@ -3030,6 +3065,39 @@
             const date = new Date(dateString);
             const options = { day: '2-digit', month: 'short', year: 'numeric' };
             return date.toLocaleDateString('id-ID', options);
+        }
+
+        // ==================== FORMAT RUPIAH INPUT ====================
+        function formatRupiahInput(input) {
+            // Ambil nilai dan hapus semua karakter selain angka dan minus
+            let value = input.value.replace(/[^\d-]/g, '');
+            
+            // Cek apakah angka negatif
+            const isNegative = value.startsWith('-');
+            
+            // Hapus minus untuk proses formatting
+            if (isNegative) {
+                value = value.substring(1);
+            }
+            
+            // Format dengan titik pemisah ribuan
+            if (value) {
+                value = parseInt(value).toLocaleString('id-ID');
+            }
+            
+            // Tambahkan kembali minus jika negatif
+            if (isNegative && value) {
+                value = '-' + value;
+            }
+            
+            // Set nilai yang sudah diformat
+            input.value = value;
+        }
+
+        function parseRupiahValue(value) {
+            // Hapus semua karakter selain angka dan minus, lalu convert ke number
+            if (!value) return 0;
+            return parseFloat(value.replace(/[^\d-]/g, '')) || 0;
         }
 
         // ==================== AUTO-SAVE ====================
