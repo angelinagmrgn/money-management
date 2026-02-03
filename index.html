@@ -18,85 +18,129 @@
             --primary: #219c91;
             --primary-dark: #1a7d74;
             --primary-light: #2bbbad;
-            --secondary: #f8f9fa;
-            --text: #333333;
-            --text-light: #666666;
-            --success: #28a745;
-            --danger: #dc3545;
-            --warning: #ffc107;
-            --border: #e0e0e0;
+            --secondary: #f8fafc;
+            --accent: #ec4899;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --text-lighter: #94a3b8;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --info: #3b82f6;
+            --border: #e2e8f0;
             --card-bg: #ffffff;
-            --shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-            --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
+            --gradient-primary: linear-gradient(135deg, #219c91 0%, #1a7d74 100%);
+            --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --gradient-danger: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+            --gradient-accent: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-hover: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            --radius-sm: 8px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
         }
 
         body {
-            background: #f5f7fa;
+            background: linear-gradient(to bottom right, #f8fafc 0%, #e0e7ff 100%);
             min-height: 100vh;
             color: var(--text);
             padding-bottom: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
         }
 
-        /* Header dengan Burger Menu DI KIRI */
+        /* Header Modern dengan Glassmorphism */
         .header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-            padding: 18px 16px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            color: var(--text);
+            padding: 16px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(33, 156, 145, 0.3);
+            box-shadow: var(--shadow-sm);
             position: sticky;
             top: 0;
             z-index: 100;
-            height: 64px;
+            height: 70px;
+            transition: all 0.3s ease;
         }
 
-        /* Burger menu di kiri */
+        /* Burger menu di kiri - Modern */
         .burger-btn {
-            background: none;
+            background: var(--gradient-primary);
             border: none;
             color: white;
-            font-size: 24px;
+            font-size: 20px;
             cursor: pointer;
-            padding: 8px;
-            transition: transform 0.3s ease;
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow);
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .burger-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
         .burger-btn:active {
             transform: scale(0.95);
         }
 
-        /* Logo di kanan */
+        /* Logo Modern */
         .logo {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             margin-left: auto;
         }
 
         .logo i {
-            font-size: 24px;
+            font-size: 28px;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .logo h1 {
-            font-size: 18px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        /* Sidebar Overlay */
+        /* Sidebar Overlay Modern dengan Backdrop Blur */
         .sidebar-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
             z-index: 200;
             display: none;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .sidebar-overlay.active {
@@ -104,17 +148,19 @@
             opacity: 1;
         }
 
-        /* Sidebar Menu DI KIRI */
+        /* Sidebar Modern dengan Glassmorphism */
         .sidebar {
             position: fixed;
             top: 0;
-            left: -300px;
-            width: 300px;
+            left: -320px;
+            width: 320px;
             height: 100%;
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             z-index: 201;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-            transition: left 0.3s ease;
+            box-shadow: 2px 0 40px rgba(0, 0, 0, 0.1);
+            transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             overflow-y: auto;
         }
 
@@ -123,59 +169,118 @@
         }
 
         .sidebar-header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: var(--gradient-primary);
             color: white;
-            padding: 20px;
+            padding: 24px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
         }
 
         .sidebar-header h2 {
-            font-size: 18px;
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            position: relative;
+            z-index: 1;
         }
 
         .sidebar-close {
-            background: none;
+            background: rgba(255, 255, 255, 0.2);
             border: none;
             color: white;
-            font-size: 24px;
+            font-size: 20px;
             cursor: pointer;
-            padding: 4px;
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            transition: all 0.3s;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .sidebar-close:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
 
         .sidebar-menu {
-            padding: 10px 0;
+            padding: 16px 12px;
         }
 
         .sidebar-item {
-            padding: 16px 20px;
+            padding: 14px 16px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             cursor: pointer;
-            transition: background 0.2s;
-            border-left: 3px solid transparent;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: var(--radius);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--gradient-primary);
+            transform: scaleY(0);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .sidebar-item:hover {
             background: var(--secondary);
+            transform: translateX(4px);
         }
 
         .sidebar-item.active {
-            background: rgba(33, 156, 145, 0.1);
-            border-left-color: var(--primary);
+            background: linear-gradient(135deg, rgba(33, 156, 145, 0.1) 0%, rgba(26, 125, 116, 0.1) 100%);
             color: var(--primary);
+        }
+
+        .sidebar-item.active::before {
+            transform: scaleY(1);
         }
 
         .sidebar-item i {
             font-size: 20px;
             width: 24px;
+            transition: transform 0.3s;
+        }
+
+        .sidebar-item:hover i {
+            transform: scale(1.1);
         }
 
         .sidebar-item span {
             font-size: 15px;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         /* Content */
@@ -204,85 +309,153 @@
         .summary-cards {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 14px;
+            margin-bottom: 24px;
         }
 
         .summary-card {
-            background: var(--card-bg);
-            padding: 18px 16px;
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: var(--radius-lg);
             box-shadow: var(--shadow);
             text-align: center;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+            transform: scaleX(0);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .summary-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .summary-card:hover::before {
+            transform: scaleX(1);
         }
 
         .summary-card:active {
             transform: translateY(-2px);
-            box-shadow: var(--shadow-hover);
         }
 
         .card-icon {
-            font-size: 28px;
-            margin-bottom: 10px;
+            font-size: 32px;
+            margin-bottom: 12px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
         }
 
-        .card-balance .card-icon { color: var(--primary); }
-        .card-income .card-icon { color: var(--success); }
-        .card-expense .card-icon { color: var(--danger); }
+        .card-balance .card-icon { 
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .card-income .card-icon { 
+            background: var(--gradient-success);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .card-expense .card-icon { 
+            background: var(--gradient-danger);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
 
         .card-label {
-            font-size: 12px;
-            color: var(--text-light);
-            margin-bottom: 6px;
+            font-size: 11px;
+            color: var(--text-lighter);
+            margin-bottom: 8px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
+            letter-spacing: 1px;
+            font-weight: 700;
         }
 
         .card-amount {
-            font-size: 20px;
-            font-weight: 800;
+            font-size: 24px;
+            font-weight: 900;
             line-height: 1.2;
             word-break: break-word;
+            letter-spacing: -0.5px;
         }
 
-        /* Quick Actions */
+        /* Quick Actions - Modern */
         .quick-actions {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 12px;
+            margin-bottom: 24px;
         }
 
         .action-btn {
-            background: var(--card-bg);
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             color: var(--text);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            padding: 16px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            padding: 20px 12px;
+            border-radius: var(--radius-lg);
+            font-size: 13px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             box-shadow: var(--shadow);
-            min-height: 90px;
+            min-height: 100px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--gradient-primary);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .action-btn:hover::before {
+            opacity: 0.05;
         }
 
         .action-btn:active {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-hover);
-            border-color: var(--primary);
-            color: var(--primary);
+            transform: translateY(-2px) scale(0.98);
         }
 
         .action-btn i {
-            font-size: 22px;
+            font-size: 28px;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.4s;
+        }
+
+        .action-btn:hover i {
+            transform: scale(1.1) rotate(5deg);
         }
 
         /* MODERN BUDGET PROGRESS */
@@ -469,6 +642,11 @@
             background: var(--secondary);
             border-radius: 10px;
             border-left: 4px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .recent-item:hover {
+            background: #f1f5f9;
         }
 
         .recent-item.income {
@@ -513,19 +691,26 @@
             color: var(--danger);
         }
 
-        /* Section Cards */
+        /* Section Cards - Modern Glassmorphism */
         .section-card {
-            background: var(--card-bg);
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: var(--radius-lg);
             box-shadow: var(--shadow);
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             overflow: hidden;
-            border: 1px solid rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .section-card:hover {
+            box-shadow: var(--shadow-md);
         }
 
         .section-header {
-            padding: 16px;
-            background: var(--secondary);
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(33, 156, 145, 0.05) 0%, rgba(26, 125, 116, 0.05) 100%);
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
@@ -533,48 +718,63 @@
         }
 
         .section-title {
-            font-size: 16px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 800;
             color: var(--text);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .section-title i {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .add-btn {
-            background: var(--primary);
+            background: var(--gradient-primary);
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(33, 156, 145, 0.3);
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(33, 156, 145, 0.4);
         }
 
         .add-btn:active {
-            background: var(--primary-dark);
-            transform: scale(0.95);
+            transform: translateY(0);
         }
 
-        /* TOMBOL KECIL untuk Reminder */
+        /* TOMBOL KECIL - Modern */
         .add-btn-small {
-            background: var(--primary);
+            background: var(--gradient-primary);
             color: white;
             border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(33, 156, 145, 0.25);
+        }
         }
 
         .add-btn-small i {
@@ -584,6 +784,76 @@
         .add-btn-small:active {
             background: var(--primary-dark);
             transform: scale(0.95);
+        }
+
+        /* Modern Pagination Buttons */
+        .pagination-btn {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: var(--text);
+            border: 2px solid var(--border);
+            padding: 12px 20px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow-sm);
+            min-width: 140px;
+            justify-content: center;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 156, 145, 0.3);
+        }
+
+        .pagination-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: var(--secondary);
+            border-color: var(--border);
+        }
+
+        .pagination-btn i {
+            font-size: 12px;
+            transition: transform 0.3s;
+        }
+
+        .pagination-prev:hover:not(:disabled) i {
+            transform: translateX(-3px);
+        }
+
+        .pagination-next:hover:not(:disabled) i {
+            transform: translateX(3px);
+        }
+
+        /* Responsive Pagination */
+        @media (max-width: 400px) {
+            .pagination-btn {
+                min-width: 100px;
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+            
+            .pagination-text {
+                display: none;
+            }
+            
+            .pagination-btn i {
+                font-size: 16px;
+            }
         }
 
         /* Halaman Kelola Kategori */
@@ -1234,8 +1504,8 @@
                     </div>
                     
                     <!-- Pagination Info -->
-                    <div id="paginationInfo" style="padding: 12px 16px; background: var(--secondary); 
-                         border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-light);">
+                    <div id="paginationInfo" style="padding: 14px 20px; background: linear-gradient(135deg, rgba(33, 156, 145, 0.03) 0%, rgba(26, 125, 116, 0.03) 100%); 
+                         border-top: 1px solid var(--border); font-size: 13px; color: var(--text-light); font-weight: 600; text-align: center;">
                         Menampilkan 0 dari 0 transaksi
                     </div>
                     
@@ -1247,15 +1517,27 @@
                         </div>
                     </div>
                     
-                    <!-- Pagination Controls -->
-                    <div id="paginationControls" style="padding: 16px; text-align: center; display: none;">
-                        <button class="add-btn-small" onclick="prevPage()" id="prevPageBtn" disabled>
-                            <i class="fas fa-chevron-left"></i> Sebelumnya
-                        </button>
-                        <span style="margin: 0 10px; font-size: 13px;" id="currentPageDisplay">Halaman 1</span>
-                        <button class="add-btn-small" onclick="nextPage()" id="nextPageBtn" disabled>
-                            Selanjutnya <i class="fas fa-chevron-right"></i>
-                        </button>
+                    <!-- Pagination Controls - Modern UI -->
+                    <div id="paginationControls" style="padding: 20px; display: none;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                            <button class="pagination-btn pagination-prev" onclick="prevPage()" id="prevPageBtn" disabled>
+                                <i class="fas fa-chevron-left"></i>
+                                <span class="pagination-text">Sebelumnya</span>
+                            </button>
+                            
+                            <div style="display: flex; align-items: center; gap: 8px; flex: 1; justify-content: center;">
+                                <span id="currentPageDisplay" style="font-size: 14px; font-weight: 700; color: var(--text); 
+                                     background: linear-gradient(135deg, rgba(33, 156, 145, 0.1) 0%, rgba(26, 125, 116, 0.1) 100%);
+                                     padding: 8px 16px; border-radius: 8px; white-space: nowrap;">
+                                    Halaman 1
+                                </span>
+                            </div>
+                            
+                            <button class="pagination-btn pagination-next" onclick="nextPage()" id="nextPageBtn" disabled>
+                                <span class="pagination-text">Selanjutnya</span>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
