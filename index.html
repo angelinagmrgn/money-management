@@ -1355,6 +1355,14 @@
                 <div class="sidebar-item" onclick="navigateTo('settings')">
                     <i class="fas fa-cog"></i>
                     <span>Pengaturan</span>
+				<div class="sidebar-item" onclick="navigateTo('settings')">
+                    <i class="fas fa-cog"></i>
+                    <span>Pengaturan</span>
+                </div>
+				<!-- TAMBAHKAN MENU LOGOUT DI SINI -->
+                <div class="sidebar-item" onclick="doLogout()" style="color: var(--danger); margin-top: 10px; border-top: 1px solid var(--border); padding-top: 16px;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Keluar</span>
                 </div>
             </div>
         </div>
@@ -1726,7 +1734,11 @@
 
 <div id="coupleScreen" class="modal" style="z-index:3000">
   <div class="modal-content">
-    <div class="modal-header"><h3 class="modal-title">Ruang Pasangan</h3></div>
+    <div class="modal-header">
+      <h3 class="modal-title">Ruang Pasangan</h3>
+      <!-- Ini adalah tombol X -->
+      <button class="modal-close" onclick="document.getElementById('coupleScreen').classList.remove('active')">&times;</button>
+    </div>
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Nama panggilan Anda</label>
         <input id="coupleDisplay" class="form-input"></div>
@@ -1966,8 +1978,74 @@
 		}
 }
 
-		async function doCreateCouple() {}
-		async function doJoinCouple() {}
+		async function doCreateCouple() {
+			const displayName = document.getElementById('coupleDisplay').value;
+			if (!displayName) return alert('Isi nama panggilan Anda');
+
+			// 1. Buat kode undangan acak (6 karakter)
+			const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+			
+			// 2. Buat ruang baru di tabel 'couples'
+			const { data: couple, error: err1 } = await sb.from('couples')
+				.insert({ invite_code: code })
+				.select()
+				.single();
+			
+			if (err1) return alert('Gagal buat ruang: ' + err1.message);
+
+			// 3. Masukkan pengguna saat ini ke 'couple_members'
+			const { error: err2 } = await sb.from('couple_members')
+				.insert({ 
+					couple_id: couple.id, 
+					user_id: currentUser.id,
+					display_name: displayName
+				});
+
+			if (err2) return alert('Gagal bergabung ke ruang: ' + err2.message);
+
+			alert('Ruang berhasil dibuat! Kode undangan partner Anda: ' + code);
+			window.location.reload();
+		}
+
+		async function doJoinCouple() {
+			const displayName = document.getElementById('coupleDisplay').value;
+			const code = document.getElementById('coupleCode').value.toUpperCase();
+			
+			if (!displayName) return alert('Isi nama panggilan Anda');
+			if (!code) return alert('Isi kode undangan dari partner');
+
+			// 1. Cari ruang berdasarkan kode undangan
+			const { data: couple, error: err1 } = await sb.from('couples')
+				.select('id')
+				.eq('invite_code', code)
+				.single();
+				
+			if (err1 || !couple) return alert('Kode undangan tidak valid atau ruang tidak ditemukan.');
+
+			// 2. Gabung ke ruang tersebut
+			const { error: err2 } = await sb.from('couple_members')
+				.insert({ 
+					couple_id: couple.id, 
+					user_id: currentUser.id,
+					display_name: displayName
+				});
+
+			if (err2) return alert('Gagal bergabung: ' + err2.message);
+
+			alert('Berhasil bergabung dengan partner!');
+			window.location.reload();
+		}
+		async function doLogout() {
+			if (confirm('Yakin ingin keluar dari akun ini?')) {
+				const { error } = await sb.auth.signOut();
+				if (error) {
+					alert('Gagal keluar: ' + error.message);
+				} else {
+					// Muat ulang halaman untuk kembali ke layar login
+					window.location.reload();
+				}
+			}
+		}
 		async function seedDefaultCategories() {}
 
         // ==================== GLOBAL VARIABLES ====================
