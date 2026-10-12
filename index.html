@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SheetJS Library untuk Export Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+	<!-- Supabase Library untuk database dan login -->
+	<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -1705,6 +1707,36 @@
             </div>
         </div>
     </div>
+	
+<div id="authScreen" class="modal active" style="z-index:3000">
+  <div class="modal-content">
+    <div class="modal-header"><h3 class="modal-title">Masuk</h3></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Email</label>
+        <input id="authEmail" type="email" class="form-input"></div>
+      <div class="form-group"><label class="form-label">Password</label>
+        <input id="authPassword" type="password" class="form-input"></div>
+      <div class="form-actions">
+        <button class="submit-btn" onclick="doLogin()">Masuk</button>
+        <button class="cancel-btn" onclick="doSignup()">Daftar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="coupleScreen" class="modal" style="z-index:3000">
+  <div class="modal-content">
+    <div class="modal-header"><h3 class="modal-title">Ruang Pasangan</h3></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">Nama panggilan Anda</label>
+        <input id="coupleDisplay" class="form-input"></div>
+      <button class="submit-btn" style="width:100%;margin-bottom:16px" onclick="doCreateCouple()">Buat ruang baru</button>
+      <div class="form-group"><label class="form-label">Atau gabung dengan kode undangan</label>
+        <input id="coupleCode" class="form-input" placeholder="kode dari partner"></div>
+      <button class="cancel-btn" style="width:100%" onclick="doJoinCouple()">Gabung</button>
+    </div>
+  </div>
+</div>
 
     <!-- Modals -->
     <!-- Add Transaction Modal -->
@@ -1896,6 +1928,26 @@
     <div id="notificationContainer" class="notification-container"></div>
 
     <script>
+	 // ==================== SUPABASE ====================
+        const SUPABASE_URL = 'https://znfmiplrtnfzvxdjspmm.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_X5GIfzRQO1y2vuxIA1zxlQ_ZTznZhAl';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentUser = null;
+        let coupleId = null;
+        let members = {};
+		 
+		 // ==================== AUTH & COUPLE ====================
+        async function doSignup() { ... }
+        async function doLogin() { ... }
+        async function doCreateCouple() { ... }
+        async function doJoinCouple() { ... }
+        async function seedDefaultCategories() { ... }
+
+        // ==================== GLOBAL VARIABLES ====================
+        let transactions = [];
+        let categories = [];
+        ...
         // ==================== GLOBAL VARIABLES ====================
         let transactions = [];
         let categories = [];
@@ -1930,15 +1982,36 @@
         ];
 
         // ==================== INITIALIZATION ====================
-        function init() {
-            loadData();
-            updateDashboard();
-            loadCategories();
-            loadRecentTransactions();
-            updateBudgetDisplay();
-            loadTransactions();
-            loadSavings();
-            loadReminders();
+        async function init() {
+			const { data: { session } } = await sb.auth.getSession();
+			if (!session) return;                       // layar login tetap tampil
+			currentUser = session.user;
+
+			const { data: mem } = await sb.from('couple_members')
+				.select('couple_id').limit(1);
+			if (!mem || mem.length === 0) {             // belum punya ruang
+				authScreen.classList.remove('active');
+				coupleScreen.classList.add('active');
+			return;
+			}
+				coupleId = mem[0].couple_id;
+				authScreen.classList.remove('active');
+
+  await loadData();
+  // ... lanjutkan isi init() lama Anda (set tanggal default, applyFilters, dst.)
+  refreshAll();
+  // ==================== REALTIME ====================
+function subscribeRealtime() {
+    const ch = sb.channel('couple-' + coupleId);
+    ['transactions','categories','savings','reminders','budgets'].forEach(table => {
+        ch.on('postgres_changes',
+            { event: '*', schema: 'public', table, filter: `couple_id=eq.${coupleId}` },
+            async () => { await loadData(); refreshAll(); });
+    });
+    ch.subscribe();
+}
+  subscribeRealtime();
+}
             
             // Set tanggal default
             const today = new Date().toISOString().split('T')[0];
@@ -1997,28 +2070,40 @@
             }
         }
 
-        // ==================== LOCAL STORAGE ====================
-        function saveData() {
-            localStorage.setItem('transactions', JSON.stringify(transactions));
-            localStorage.setItem('categories', JSON.stringify(categories));
-            localStorage.setItem('savings', JSON.stringify(savings));
-            localStorage.setItem('reminders', JSON.stringify(reminders));
-            localStorage.setItem('budget', budget.toString());
-        }
+        // ==================== STORAGE ====================
+        async function loadData() {
+			const [t, c, s, r, b, m] = await Promise.all([
+			sb.from('transactions').select('*'),
+			sb.from('categories').select('*'),
+			sb.from('savings').select('*'),
+			sb.from('reminders').select('*'),
+			sb.from('budgets').select('*').maybeSingle(),
+			sb.from('couple_members').select('*')
+		]);
 
-        function loadData() {
-            const savedTransactions = localStorage.getItem('transactions');
-            const savedCategories = localStorage.getItem('categories');
-            const savedSavings = localStorage.getItem('savings');
-            const savedReminders = localStorage.getItem('reminders');
-            const savedBudget = localStorage.getItem('budget');
+		members = Object.fromEntries((m.data || []).map(x => [x.user_id, x.display_name]));
 
-            transactions = savedTransactions ? JSON.parse(savedTransactions) : [];
-            categories = savedCategories ? JSON.parse(savedCategories) : [...defaultCategories];
-            savings = savedSavings ? JSON.parse(savedSavings) : [];
-            reminders = savedReminders ? JSON.parse(savedReminders) : [];
-            budget = savedBudget ? parseFloat(savedBudget) : 0;
-        }
+		transactions = (t.data || []).map(x => ({
+			id: x.id, type: x.type, description: x.description,
+			amount: Number(x.amount), categoryId: x.category_id,
+			categoryName: x.category_name, date: x.date, createdBy: x.created_by
+		}));
+		categories = c.data || [];
+		savings = (s.data || []).map(x => ({
+			id: x.id, name: x.name, targetAmount: Number(x.target_amount),
+			currentAmount: Number(x.current_amount), targetDate: x.target_date
+		}));
+		reminders = (r.data || []).map(x => ({
+		id: x.id, name: x.name, amount: Number(x.amount), dueDate: x.due_date
+		}));
+		budget = b.data ? Number(b.data.amount) : 0;
+		}
+
+function refreshAll() {
+		updateDashboard(); loadTransactions(); loadRecentTransactions();
+		updateBudgetDisplay(); loadSavings(); loadReminders();
+		displayManageCategories();
+}
 
         // ==================== DASHBOARD ====================
         function updateDashboard() {
@@ -3471,11 +3556,6 @@
             if (!value) return 0;
             return parseFloat(value.replace(/[^\d-]/g, '')) || 0;
         }
-
-        // ==================== AUTO-SAVE ====================
-        window.addEventListener('beforeunload', function() {
-            saveData();
-        });
 
         // ==================== INITIALIZATION ====================
         window.addEventListener('DOMContentLoaded', init);
