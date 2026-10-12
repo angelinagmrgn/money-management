@@ -1988,7 +1988,10 @@
 				.select()
 				.single();
 			
-			if (err1) return alert('Gagal buat ruang: ' + err1.message);
+			if (err1) {
+				alert('Gagal buat ruang: ' + err1.message);
+				return;
+			}
 
 			// 3. Masukkan pengguna saat ini ke 'couple_members'
 			const { error: err2 } = await sb.from('couple_members')
@@ -1998,7 +2001,10 @@
 					display_name: displayName
 				});
 
-			if (err2) return alert('Gagal bergabung ke ruang: ' + err2.message);
+			if (err2) {
+				alert('Gagal bergabung ke ruang: ' + err2.message);
+				return;
+			}
 
 			alert('Ruang berhasil dibuat! Kode undangan partner Anda: ' + code);
 			window.location.reload();
@@ -2017,7 +2023,10 @@
 				.eq('invite_code', code)
 				.single();
 				
-			if (err1 || !couple) return alert('Kode undangan tidak valid atau ruang tidak ditemukan.');
+			if (err1 || !couple) {
+				alert('Kode undangan tidak valid atau ruang tidak ditemukan.');
+				return;
+			}
 
 			// 2. Gabung ke ruang tersebut
 			const { error: err2 } = await sb.from('couple_members')
@@ -2027,20 +2036,13 @@
 					display_name: displayName
 				});
 
-			if (err2) return alert('Gagal bergabung: ' + err2.message);
+			if (err2) {
+				alert('Gagal bergabung: ' + err2.message);
+				return;
+			}
 
 			alert('Berhasil bergabung dengan partner!');
 			window.location.reload();
-		}
-		async function doLogout() {
-			if (confirm('Yakin ingin keluar dari akun ini?')) {
-				const { error } = await sb.auth.signOut();
-				if (error) {
-					alert('Gagal keluar: ' + error.message);
-				} else {
-					// Muat ulang halaman untuk kembali ke layar login
-					window.location.reload();
-				}
 			}
 		}
 		async function seedDefaultCategories() {}
