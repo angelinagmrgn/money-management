@@ -1358,8 +1358,6 @@
 				<div class="sidebar-item" onclick="navigateTo('settings')">
                     <i class="fas fa-cog"></i>
                     <span>Pengaturan</span>
-                </div>
-				<!-- TAMBAHKAN MENU LOGOUT DI SINI -->
                 <div class="sidebar-item" onclick="doLogout()" style="color: var(--danger); margin-top: 10px; border-top: 1px solid var(--border); padding-top: 16px;">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Keluar</span>
@@ -2175,64 +2173,58 @@
 
         // ==================== STORAGE ====================
         async function loadData() {
-			const [t, c, s, r, b, m] = await Promise.all([
-			sb.from('transactions').select('*'),
-			sb.from('categories').select('*'),
-			sb.from('savings').select('*'),
-			sb.from('reminders').select('*'),
-			sb.from('budgets').select('*').maybeSingle(),
-			sb.from('couple_members').select('*')
-		]);
-		
-		async function saveData() {
-            // Karena Anda menggunakan Supabase, fungsi saveData() lokal tidak lagi
-            // hanya menyimpan ke LocalStorage, melainkan ke database.
-            // Untuk sementara (agar aplikasi tidak error), kita buat fungsi kosong 
-            // atau fungsi simpan ke LocalStorage sebagai fallback.
-			
-		const dataToSave = {
+            const [t, c, s, r, b, m] = await Promise.all([
+                sb.from('transactions').select('*'),
+                sb.from('categories').select('*'),
+                sb.from('savings').select('*'),
+                sb.from('reminders').select('*'),
+                sb.from('budgets').select('*').maybeSingle(),
+                sb.from('couple_members').select('*')
+            ]);
+            
+            members = Object.fromEntries((m.data || []).map(x => [x.user_id, x.display_name]));
+
+            transactions = (t.data || []).map(x => ({
+                id: x.id, type: x.type, description: x.description,
+                amount: Number(x.amount), categoryId: x.category_id,
+                categoryName: x.category_name, date: x.date, createdBy: x.created_by
+            }));
+            categories = c.data || [];
+            savings = (s.data || []).map(x => ({
+                id: x.id, name: x.name, targetAmount: Number(x.target_amount),
+                currentAmount: Number(x.current_amount), targetDate: x.target_date
+            }));
+            reminders = (r.data || []).map(x => ({
+                id: x.id, name: x.name, amount: Number(x.amount), dueDate: x.due_date
+            }));
+            budget = b.data ? Number(b.data.amount) : 0;
+        }
+
+        async function saveData() {
+            // Fallback penyimpanan lokal
+            const dataToSave = {
                 transactions,
                 categories,
                 savings,
                 reminders,
                 budget
-		};
+            };
             localStorage.setItem('moneyManagerData', JSON.stringify(dataToSave));
-			
-			// Catatan: Jika ingin menyimpan ke Supabase secara real-time,
-            // logika insert/update ke Supabase harus dimasukkan di sini.
-		
-		}
+            
+            // Note: Untuk menyimpan ke Supabase secara permanen saat pengguna
+            // menambah/mengedit data, Anda perlu memodifikasi fungsi submitTransaction, 
+            // submitCategory, dll untuk melakukan aksi 'insert' atau 'update' ke tabel Supabase.
+        }
 
         function refreshAll() {
-            updateDashboard(); loadTransactions(); loadRecentTransactions();
-            updateBudgetDisplay(); loadSavings(); loadReminders();
+            updateDashboard(); 
+            loadTransactions(); 
+            loadRecentTransactions();
+            updateBudgetDisplay(); 
+            loadSavings(); 
+            loadReminders();
             displayManageCategories();
         }
-		
-		members = Object.fromEntries((m.data || []).map(x => [x.user_id, x.display_name]));
-
-		transactions = (t.data || []).map(x => ({
-			id: x.id, type: x.type, description: x.description,
-			amount: Number(x.amount), categoryId: x.category_id,
-			categoryName: x.category_name, date: x.date, createdBy: x.created_by
-		}));
-		categories = c.data || [];
-		savings = (s.data || []).map(x => ({
-			id: x.id, name: x.name, targetAmount: Number(x.target_amount),
-			currentAmount: Number(x.current_amount), targetDate: x.target_date
-		}));
-		reminders = (r.data || []).map(x => ({
-		id: x.id, name: x.name, amount: Number(x.amount), dueDate: x.due_date
-		}));
-		budget = b.data ? Number(b.data.amount) : 0;
-		}
-
-function refreshAll() {
-		updateDashboard(); loadTransactions(); loadRecentTransactions();
-		updateBudgetDisplay(); loadSavings(); loadReminders();
-		displayManageCategories();
-}
 
         // ==================== DASHBOARD ====================
         function updateDashboard() {
