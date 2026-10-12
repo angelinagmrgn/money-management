@@ -2005,33 +2005,36 @@
 
         // ==================== INITIALIZATION ====================
         async function init() {
-			const { data: { session } } = await sb.auth.getSession();
-			if (!session) return;                       // layar login tetap tampil
-			currentUser = session.user;
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session) return; // layar login tetap tampil
+            currentUser = session.user;
 
-			const { data: mem } = await sb.from('couple_members')
-				.select('couple_id').limit(1);
-			if (!mem || mem.length === 0) {             // belum punya ruang
-				authScreen.classList.remove('active');
-				coupleScreen.classList.add('active');
-			return;
-			}
-				coupleId = mem[0].couple_id;
-				authScreen.classList.remove('active');
+            const { data: mem } = await sb.from('couple_members').select('couple_id').limit(1);
+            if (!mem || mem.length === 0) { // belum punya ruang
+                document.getElementById('authScreen').classList.remove('active');
+                document.getElementById('coupleScreen').classList.add('active');
+                return;
+            }
+            
+            coupleId = mem[0].couple_id;
+            document.getElementById('authScreen').classList.remove('active');
 
-  await loadData();
-  refreshAll();
-  // ==================== REALTIME ====================
-function subscribeRealtime() {
-    const ch = sb.channel('couple-' + coupleId);
-    ['transactions','categories','savings','reminders','budgets'].forEach(table => {
-        ch.on('postgres_changes',
-            { event: '*', schema: 'public', table, filter: `couple_id=eq.${coupleId}` },
-            async () => { await loadData(); refreshAll(); });
-    });
-    ch.subscribe();
-}
-  subscribeRealtime();
+            await loadData();
+            refreshAll();
+
+            // ==================== REALTIME ====================
+            function subscribeRealtime() {
+                const ch = sb.channel('couple-' + coupleId);
+                ['transactions','categories','savings','reminders','budgets'].forEach(table => {
+                    ch.on('postgres_changes',
+                        { event: '*', schema: 'public', table, filter: `couple_id=eq.${coupleId}` },
+                        async () => { await loadData(); refreshAll(); }
+                    );
+                });
+                ch.subscribe();
+            }
+            
+            subscribeRealtime();
             
             // Set tanggal default
             const today = new Date().toISOString().split('T')[0];
@@ -2040,15 +2043,17 @@ function subscribeRealtime() {
             }
             
             // Set tanggal default untuk filter
-            const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 2)
-                .toISOString().split('T')[0];
-            document.getElementById('filterStartDate').value = firstDayOfMonth;
-            document.getElementById('filterEndDate').value = today;
-            document.getElementById('reportStartDate').value = firstDayOfMonth;
-            document.getElementById('reportEndDate').value = today;
+            const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 2).toISOString().split('T')[0];
+            if (document.getElementById('filterStartDate')) {
+                document.getElementById('filterStartDate').value = firstDayOfMonth;
+                document.getElementById('filterEndDate').value = today;
+                document.getElementById('reportStartDate').value = firstDayOfMonth;
+                document.getElementById('reportEndDate').value = today;
+            }
             
             applyFilters(); // Apply filter default
         }
+        
 
         // ==================== SIDEBAR NAVIGATION ====================
         function toggleSidebar() {
