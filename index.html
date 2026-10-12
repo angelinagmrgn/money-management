@@ -2020,7 +2020,6 @@
 				authScreen.classList.remove('active');
 
   await loadData();
-  // ... lanjutkan isi init() lama Anda (set tanggal default, applyFilters, dst.)
   refreshAll();
   // ==================== REALTIME ====================
 function subscribeRealtime() {
@@ -2102,7 +2101,33 @@ function subscribeRealtime() {
 			sb.from('budgets').select('*').maybeSingle(),
 			sb.from('couple_members').select('*')
 		]);
+		
+		async function saveData() {
+            // Karena Anda menggunakan Supabase, fungsi saveData() lokal tidak lagi
+            // hanya menyimpan ke LocalStorage, melainkan ke database.
+            // Untuk sementara (agar aplikasi tidak error), kita buat fungsi kosong 
+            // atau fungsi simpan ke LocalStorage sebagai fallback.
+			
+		const dataToSave = {
+                transactions,
+                categories,
+                savings,
+                reminders,
+                budget
+		};
+            localStorage.setItem('moneyManagerData', JSON.stringify(dataToSave));
+			
+			// Catatan: Jika ingin menyimpan ke Supabase secara real-time,
+            // logika insert/update ke Supabase harus dimasukkan di sini.
+		
+		}
 
+        function refreshAll() {
+            updateDashboard(); loadTransactions(); loadRecentTransactions();
+            updateBudgetDisplay(); loadSavings(); loadReminders();
+            displayManageCategories();
+        }
+		
 		members = Object.fromEntries((m.data || []).map(x => [x.user_id, x.display_name]));
 
 		transactions = (t.data || []).map(x => ({
