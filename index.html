@@ -1963,6 +1963,12 @@
             }
         }
 
+        async function doLogout() {
+            if (!confirm('Yakin ingin keluar?')) return;
+            await sb.auth.signOut();
+        window.location.reload();
+        }
+
 		async function doLogin() {
 			const email = document.getElementById('authEmail').value;
 			const password = document.getElementById('authPassword').value;
@@ -1974,8 +1980,8 @@
 			} else {
 				alert('Berhasil masuk!');
 				window.location.reload();
-		}
-}
+		    }
+        }
 
 		async function doCreateCouple() {
 			const displayName = document.getElementById('coupleDisplay').value;
