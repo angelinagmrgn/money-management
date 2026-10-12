@@ -779,7 +779,6 @@
             gap: 6px;
             box-shadow: 0 2px 8px rgba(33, 156, 145, 0.25);
         }
-        }
 
         .add-btn-small i {
             font-size: 11px;
@@ -1949,17 +1948,20 @@
 		
         // ==================== AUTH & COUPLE ====================
 		async function doSignup() {
-			const email = document.getElementById('authEmail').value;
-			const password = document.getElementById('authPassword').value;
-			if (!email || !password) return alert('Isi email dan password');
-    
-			const { error } = await sb.auth.signUp({ email, password });
-			if (error) {
-				alert('Gagal daftar: ' + error.message);
-			} else {
-				alert('Daftar berhasil! Silakan masuk.');
-		}
-}
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            if (!email || !password) return alert('Isi email dan password');
+
+            const { data, error } = await sb.auth.signUp({ email, password });
+            if (error) return alert('Gagal daftar: ' + error.message);
+
+            if (data.session) {
+                alert('Daftar berhasil! Anda sudah login.');
+                window.location.reload();
+            } else {
+                alert('Daftar berhasil! Cek email untuk konfirmasi, lalu login.');
+            }
+        }
 
 		async function doLogin() {
 			const email = document.getElementById('authEmail').value;
@@ -2044,7 +2046,6 @@
 			alert('Berhasil bergabung dengan partner!');
 			window.location.reload();
 			}
-		}
 		async function seedDefaultCategories() {}
 
         // ==================== GLOBAL VARIABLES ====================
@@ -2086,50 +2087,80 @@
             if (!session) return; // layar login tetap tampil
             currentUser = session.user;
 
-            const { data: mem } = await sb.from('couple_members').select('couple_id').limit(1);
-            if (!mem || mem.length === 0) { // belum punya ruang
+            // Ambil couple milik user yang login
+            const { data: mem } = await sb.from('couple_members')
+                .select('couple_id')
+                .eq('user_id', currentUser.id)
+                .maybeSingle();
+
+            if (!mem) {
                 document.getElementById('authScreen').classList.remove('active');
                 document.getElementById('coupleScreen').classList.add('active');
                 return;
-            }
-            
-            coupleId = mem[0].couple_id;
+        }
+
+            coupleId = mem.couple_id;
             document.getElementById('authScreen').classList.remove('active');
+            document.getElementById('coupleScreen').classList.remove('active');
 
             await loadData();
             refreshAll();
 
-            // ==================== REALTIME ====================
-            function subscribeRealtime() {
-                const ch = sb.channel('couple-' + coupleId);
-                ['transactions','categories','savings','reminders','budgets'].forEach(table => {
-                    ch.on('postgres_changes',
-                        { event: '*', schema: 'public', table, filter: `couple_id=eq.${coupleId}` },
-                        async () => { await loadData(); refreshAll(); }
-                    );
-                });
-                ch.subscribe();
-            }
-            
-            subscribeRealtime();
-            
-            // Set tanggal default
-            const today = new Date().toISOString().split('T')[0];
-            if (document.getElementById('transactionDate')) {
-                document.getElementById('transactionDate').value = today;
-            }
-            
-            // Set tanggal default untuk filter
-            const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 2).toISOString().split('T')[0];
-            if (document.getElementById('filterStartDate')) {
-                document.getElementById('filterStartDate').value = firstDayOfMonth;
-                document.getElementById('filterEndDate').value = today;
-                document.getElementById('reportStartDate').value = firstDayOfMonth;
-                document.getElementById('reportEndDate').value = today;
-            }
-            
-            applyFilters(); // Apply filter default
-        }
+        // Realtime
+        const ch = sb.channel('couple-' + coupleId);
+        ['transactions','categories','savings','reminders','budgets'].forEach(table => {
+            ch.on('postgres_changes',
+                { event: '*', schema: 'public', table, filter: `couple_id=eq.${coupleId}` },
+                async () => { await loadData(); refreshAll(); }
+            );
+        });
+        ch.subscribe();
+
+        // Set tanggal default
+        const today = new Date().toISOString().split('T')[0];
+        if (document.getElementById('transactionDate'))
+        document.getElementById('transactionDate').value = today;
+
+        const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 2)
+            .toISOString().split('T')[0];
+        if (document.getElementById('filterStartDate')) {
+        document.getElementById('filterStartDate').value = firstDay;
+        document.getElementById('filterEndDate').value = today;
+        document.getElementById('reportStartDate').value = firstDay;
+        document.getElementById('reportEndDate').value = today;
+    }
+
+        applyFilters();
+    }
+
+        // WAJIB: filter by couple_id
+        async function loadData() {
+            const [t, c, s, r, b, m] = await Promise.all([
+            sb.from('transactions').select('*').eq('couple_id', coupleId),
+            sb.from('categories').select('*').eq('couple_id', coupleId),
+            sb.from('savings').select('*').eq('couple_id', coupleId),
+            sb.from('reminders').select('*').eq('couple_id', coupleId),
+            sb.from('budgets').select('*').eq('couple_id', coupleId).maybeSingle(),
+            sb.from('couple_members').select('*').eq('couple_id', coupleId)
+        ]);
+
+        members = Object.fromEntries((m.data || []).map(x => [x.user_id, x.display_name]));
+
+        transactions = (t.data || []).map(x => ({
+            id: x.id, type: x.type, description: x.description,
+            amount: Number(x.amount), categoryId: x.category_id,
+            categoryName: x.category_name, date: x.date, createdBy: x.created_by
+        }));
+        categories = (c.data || []).map(x => ({ id: x.id, name: x.name, type: x.type }));
+        savings = (s.data || []).map(x => ({
+            id: x.id, name: x.name, targetAmount: Number(x.target_amount),
+            currentAmount: Number(x.current_amount), targetDate: x.target_date
+        }));
+        reminders = (r.data || []).map(x => ({
+            id: x.id, name: x.name, amount: Number(x.amount), dueDate: x.due_date
+        }));
+        budget = b.data ? Number(b.data.amount) : 0;
+    }
         
 
         // ==================== SIDEBAR NAVIGATION ====================
@@ -2567,50 +2598,54 @@
             }
         }
 
-        function submitTransaction(event) {
+        async function submitTransaction(event) {
             event.preventDefault();
-            
+
             const type = document.getElementById('transactionType').value;
-            const categoryId = parseInt(document.getElementById('transactionCategory').value);
+            const categoryId = document.getElementById('transactionCategory').value;
             const description = document.getElementById('transactionDesc').value;
             const amount = parseRupiahValue(document.getElementById('transactionAmount').value);
             const date = document.getElementById('transactionDate').value;
-            
-            const category = categories.find(c => c.id === categoryId);
-            
-            const transaction = {
-                id: Date.now(),
-                type,
-                description,
-                amount,
-                categoryId,
-                categoryName: category.name,
-                date,
-                createdAt: new Date().toISOString()
-            };
-            
-            transactions.push(transaction);
-            
-            saveData();
-            updateDashboard();
-            loadTransactions();
-            loadRecentTransactions();
-            updateBudgetDisplay();
-            closeModal();
-            showNotification('Transaksi berhasil ditambahkan!', 'success');
+
+            const category = categories.find(c => String(c.id) === String(categoryId));
+            if (!category) return showNotification('Kategori tidak valid', 'error');
+            if (amount <= 0) return showNotification('Jumlah harus lebih dari 0', 'warning');
+
+            const { error } = await sb.from('transactions').insert({
+                couple_id: coupleId,
+                type: type,
+                description: description,
+                amount: amount,
+                category_id: category.id,
+                category_name: category.name,
+                date: date,
+                created_by: currentUser.id
+        });
+
+            if (error) {
+            showNotification('Gagal simpan: ' + error.message, 'error');
+            return;
         }
 
-        function deleteTransaction(id) {
-            if (confirm('Yakin ingin menghapus transaksi ini?')) {
-                transactions = transactions.filter(t => t.id !== id);
-                saveData();
-                updateDashboard();
-                loadTransactions();
-                loadRecentTransactions();
-                updateBudgetDisplay();
-                showNotification('Transaksi berhasil dihapus!', 'success');
-            }
+            await loadData();
+            refreshAll();
+            closeModal();
+            showNotification('Transaksi berhasil ditambahkan!', 'success');
+    }
+
+            async function deleteTransaction(id) {
+                if (!confirm('Yakin ingin menghapus transaksi ini?')) return;
+
+                const { error } = await sb.from('transactions').delete().eq('id', id);
+                if (error) {
+                showNotification('Gagal hapus: ' + error.message, 'error');
+                return;
         }
+
+        await loadData();
+        refreshAll();
+        showNotification('Transaksi berhasil dihapus!', 'success');
+    }   
 
         // ==================== CATEGORIES ====================
         function loadCategories() {
@@ -2666,67 +2701,80 @@
             `).join('');
         }
 
-        function submitCategory(event) {
+        async function submitCategory(event) {
             event.preventDefault();
-            
-            const name = document.getElementById('categoryName').value;
+
+            const name = document.getElementById('categoryName').value.trim();
             const type = document.getElementById('categoryType').value;
-            
-            const category = {
-                id: Date.now(),
-                name,
-                type
-            };
-            
-            categories.push(category);
-            saveData();
-            displayCategories();
-            loadManageCategories();
-            closeModal();
-            showNotification('Kategori berhasil ditambahkan!', 'success');
+            if (!name) return showNotification('Nama kategori kosong', 'warning');
+
+            const { error } = await sb.from('categories').insert({
+                couple_id: coupleId,
+                name: name,
+                type: type
+        });
+
+        if (error) {
+        showNotification('Gagal simpan: ' + error.message, 'error');
+        return;
         }
 
-        function submitEditCategory(event) {
+        await loadData();
+        refreshAll();
+        closeModal();
+        showNotification('Kategori berhasil ditambahkan!', 'success');
+    }
+
+        async function submitEditCategory(event) {
             event.preventDefault();
-            
-            const id = parseInt(document.getElementById('editCategoryId').value);
-            const name = document.getElementById('editCategoryName').value;
-            
-            const category = categories.find(c => c.id === id);
-            if (category) {
-                category.name = name;
-                
-                transactions.forEach(t => {
-                    if (t.categoryId === id) {
-                        t.categoryName = name;
-                    }
-                });
-                
-                saveData();
-                displayCategories();
-                loadManageCategories();
-                loadTransactions();
-                closeModal();
-                showNotification('Kategori berhasil diupdate!', 'success');
-            }
+
+            const id = document.getElementById('editCategoryId').value;
+            const name = document.getElementById('editCategoryName').value.trim();
+            if (!name) return showNotification('Nama kategori kosong', 'warning');
+
+            // Update nama kategori
+            const { error: err1 } = await sb.from('categories')
+                .update({ name: name })
+                .eq('id', id);
+        if (err1) {
+            showNotification('Gagal update kategori: ' + err1.message, 'error');
+            return;
         }
 
-        function deleteCategory(id) {
-            const hasTransactions = transactions.some(t => t.categoryId === id);
-            
-            if (hasTransactions) {
-                showNotification('Tidak bisa menghapus kategori yang masih digunakan!', 'warning');
-                return;
-            }
-            
-            if (confirm('Yakin ingin menghapus kategori ini?')) {
-                categories = categories.filter(c => c.id !== id);
-                saveData();
-                displayCategories();
-                loadManageCategories();
-                showNotification('Kategori berhasil dihapus!', 'success');
-            }
+            // Update category_name di semua transaksi yang pakai kategori ini
+            const { error: err2 } = await sb.from('transactions')
+                .update({ category_name: name })
+                .eq('couple_id', coupleId)
+                .eq('category_id', id);
+        if (err2) {
+            console.warn('Update transaction category_name gagal:', err2.message);
         }
+
+        await loadData();
+        refreshAll();
+        closeModal();
+        showNotification('Kategori berhasil diupdate!', 'success');
+    }
+
+        async function deleteCategory(id) {
+            const hasTransactions = transactions.some(t => String(t.categoryId) === String(id));
+            if (hasTransactions) {
+            showNotification('Tidak bisa menghapus kategori yang masih digunakan!', 'warning');
+            return;
+        }
+
+            if (!confirm('Yakin ingin menghapus kategori ini?')) return;
+
+            const { error } = await sb.from('categories').delete().eq('id', id);
+            if (error) {
+            showNotification('Gagal hapus: ' + error.message, 'error');
+            return;
+        }
+
+        await loadData();
+        refreshAll();
+        showNotification('Kategori berhasil dihapus!', 'success');
+    }
 
         // ==================== MANAGE CATEGORIES PAGE ====================
         function loadManageCategories() {
@@ -2780,28 +2828,26 @@
             `).join('');
         }
 
-        function addCategoryFromManagePage() {
+        async function addCategoryFromManagePage() {
             const name = document.getElementById('manageNewCategoryName').value.trim();
-            
-            if (!name) {
-                showNotification('Nama kategori tidak boleh kosong!', 'warning');
-                return;
-            }
-            
-            const category = {
-                id: Date.now(),
-                name,
+            if (!name) return showNotification('Nama kategori tidak boleh kosong!', 'warning');
+
+            const { error } = await sb.from('categories').insert({
+                couple_id: coupleId,
+                name: name,
                 type: currentManageCategoryFilter
-              };
-			
-            categories.push(category);
-            saveData();
-            displayCategories();
-            displayManageCategories();
-            
-            document.getElementById('manageNewCategoryName').value = '';
-            showNotification('Kategori berhasil ditambahkan!', 'success');
+        });
+
+        if (error) {
+            showNotification('Gagal simpan: ' + error.message, 'error');
+            return;
         }
+
+        document.getElementById('manageNewCategoryName').value = '';
+        await loadData();
+        refreshAll();
+        showNotification('Kategori berhasil ditambahkan!', 'success');
+    }
 
         // ==================== SAVINGS WITH ADDITIONAL FEATURES ====================
         function loadSavings() {
@@ -2935,82 +2981,110 @@
             document.body.insertAdjacentHTML('beforeend', modalHTML);
         }
 
-        function updateSavingAmount(id, amountChange) {
-            const saving = savings.find(s => s.id === id);
-            if (saving) {
-                saving.currentAmount += amountChange;
-                if (saving.currentAmount < 0) saving.currentAmount = 0;
-                if (saving.currentAmount > saving.targetAmount) saving.currentAmount = saving.targetAmount;
-                
-                saveData();
-                loadSavings();
-                
-                const action = amountChange > 0 ? 'ditambah' : 'dikurangi';
-                showNotification(`Tabungan "${saving.name}" berhasil ${action} ${formatCurrency(Math.abs(amountChange))}`, 'success');
-                
-                // Close modal if open
-                const modal = document.getElementById('updateSavingModal');
-                if (modal) {
-                    modal.classList.remove('active');
-                }
-            }
+        async function updateSavingAmount(id, amountChange) {
+            const saving = savings.find(s => String(s.id) === String(id));
+            if (!saving) return;
+
+            let newAmount = saving.currentAmount + amountChange;
+            if (newAmount < 0) newAmount = 0;
+            if (newAmount > saving.targetAmount) newAmount = saving.targetAmount;
+
+            const { error } = await sb.from('savings')
+                .update({ current_amount: newAmount })
+                .eq('id', id);
+            if (error) {
+                showNotification('Gagal update: ' + error.message, 'error');
+                return;
         }
 
-        function submitSavingUpdate(id) {
+            await loadData();
+            refreshAll();
+
+            const action = amountChange > 0 ? 'ditambah' : 'dikurangi';
+            showNotification(`Tabungan "${saving.name}" ${action} ${formatCurrency(Math.abs(amountChange))}`, 'success');
+
+            const modal = document.getElementById('updateSavingModal');
+            if (modal) modal.classList.remove('active');
+    }
+
+        async function submitSavingUpdate(id) {
             const updateAmount = document.getElementById('savingUpdateAmount').value;
             const setAmount = document.getElementById('savingSetAmount').value;
-            
-            const saving = savings.find(s => s.id === id);
+
+            const saving = savings.find(s => String(s.id) === String(id));
             if (!saving) return;
-            
+
+            let newAmount = saving.currentAmount;
+
             if (updateAmount) {
-                const amountChange = parseRupiahValue(updateAmount);
-                updateSavingAmount(id, amountChange);
+                newAmount = saving.currentAmount + parseRupiahValue(updateAmount);
             } else if (setAmount) {
-                saving.currentAmount = parseRupiahValue(setAmount);
-                if (saving.currentAmount < 0) saving.currentAmount = 0;
-                if (saving.currentAmount > saving.targetAmount) saving.currentAmount = saving.targetAmount;
-                
-                saveData();
-                loadSavings();
-                showNotification(`Tabungan "${saving.name}" diatur menjadi ${formatCurrency(saving.currentAmount)}`, 'success');
-            }
-            
-            closeModal();
+                newAmount = parseRupiahValue(setAmount);
+            } else {
+                return closeModal();
         }
 
-        function submitSaving(event) {
+            if (newAmount < 0) newAmount = 0;
+            if (newAmount > saving.targetAmount) newAmount = saving.targetAmount;
+
+            const { error } = await sb.from('savings')
+            .update({ current_amount: newAmount })
+            .eq('id', id);
+        if (error) {
+            showNotification('Gagal update: ' + error.message, 'error');
+            return;
+        }
+
+        await loadData();
+        refreshAll();
+        closeModal();
+        showNotification(`Tabungan "${saving.name}" diupdate!`, 'success');
+    }
+
+        async function submitSaving(event) {
             event.preventDefault();
-            
-            const name = document.getElementById('savingName').value;
+
+            const name = document.getElementById('savingName').value.trim();
             const targetAmount = parseRupiahValue(document.getElementById('savingTarget').value);
             const currentAmount = parseRupiahValue(document.getElementById('savingCurrent').value);
             const targetDate = document.getElementById('savingDate').value;
-            
-            const saving = {
-                id: Date.now(),
-                name,
-                targetAmount,
-                currentAmount,
-                targetDate,
-                createdAt: new Date().toISOString()
-            };
-            
-            savings.push(saving);
-            saveData();
-            loadSavings();
-            closeModal();
-            showNotification('Target tabungan berhasil ditambahkan!', 'success');
+
+            if (!name || targetAmount <= 0) {
+                return showNotification('Nama dan target harus diisi dengan benar', 'warning');
         }
 
-        function deleteSaving(id) {
-            if (confirm('Yakin ingin menghapus target tabungan ini?')) {
-                savings = savings.filter(s => s.id !== id);
-                saveData();
-                loadSavings();
-                showNotification('Target tabungan berhasil dihapus!', 'success');
-            }
+            const { error } = await sb.from('savings').insert({
+                couple_id: coupleId,
+                name: name,
+                target_amount: targetAmount,
+                current_amount: currentAmount,
+                target_date: targetDate
+        });
+
+        if (error) {
+            showNotification('Gagal simpan: ' + error.message, 'error');
+            return;
         }
+
+        await loadData();
+        refreshAll();
+        closeModal();
+        showNotification('Target tabungan berhasil ditambahkan!', 'success');
+    }
+
+        async function deleteSaving(id) {
+            if (!confirm('Yakin ingin menghapus target tabungan ini?')) return;
+
+            const { error } = await sb.from('savings').delete().eq('id', id);
+            if (error) {
+                showNotification('Gagal hapus: ' + error.message, 'error');
+            return;
+        }
+
+        await loadData();
+        refreshAll();
+        showNotification('Target tabungan berhasil dihapus!', 'success');
+    }
 
         // ==================== REMINDERS ====================
         function loadReminders() {
@@ -3054,47 +3128,71 @@
             }).join('');
         }
 
-        function submitReminder(event) {
+        async function submitReminder(event) {
             event.preventDefault();
-            
-            const name = document.getElementById('reminderName').value;
+
+            const name = document.getElementById('reminderName').value.trim();
             const amount = parseRupiahValue(document.getElementById('reminderAmount').value);
             const dueDate = document.getElementById('reminderDate').value;
-            
-            const reminder = {
-                id: Date.now(),
-                name,
-                amount,
-                dueDate,
-                createdAt: new Date().toISOString()
-            };
-            
-            reminders.push(reminder);
-            saveData();
-            loadReminders();
-            closeModal();
-            showNotification('Pengingat berhasil ditambahkan!', 'success');
+
+            if (!name || amount <= 0 || !dueDate) {
+                return showNotification('Lengkapi semua field', 'warning');
+    }
+
+            const { error } = await sb.from('reminders').insert({
+                couple_id: coupleId,
+                name: name,
+                amount: amount,
+                due_date: dueDate
+        });
+
+            if (error) {
+                showNotification('Gagal simpan: ' + error.message, 'error');
+                return;
         }
 
-        function deleteReminder(id) {
-            if (confirm('Yakin ingin menghapus pengingat ini?')) {
-                reminders = reminders.filter(r => r.id !== id);
-                saveData();
-                loadReminders();
-                showNotification('Pengingat berhasil dihapus!', 'success');
-            }
+        await loadData();
+        refreshAll();
+        closeModal();
+        showNotification('Pengingat berhasil ditambahkan!', 'success');
+    }
+
+        async function deleteReminder(id) {
+            if (!confirm('Yakin ingin menghapus pengingat ini?')) return;
+
+            const { error } = await sb.from('reminders').delete().eq('id', id);
+            if (error) {
+                showNotification('Gagal hapus: ' + error.message, 'error');
+                return;
         }
+
+        await loadData();
+        refreshAll();
+        showNotification('Pengingat berhasil dihapus!', 'success');
+    }
 
         // ==================== BUDGET ====================
-        function submitBudget(event) {
+        async function submitBudget(event) {
             event.preventDefault();
-            
-            budget = parseRupiahValue(document.getElementById('budgetAmount').value);
-            saveData();
-            updateBudgetDisplay();
+
+            const amount = parseRupiahValue(document.getElementById('budgetAmount').value);
+            if (amount < 0) return showNotification('Budget tidak boleh negatif', 'warning');
+
+            const { error } = await sb.from('budgets').upsert(
+                { couple_id: coupleId, amount: amount },
+                { onConflict: 'couple_id' }
+        );
+
+            if (error) {
+                showNotification('Gagal simpan: ' + error.message, 'error');
+                return;
+        }
+
+            await loadData();
+            refreshAll();
             closeModal();
             showNotification('Budget berhasil diatur!', 'success');
-        }
+    }
 
         // ==================== REPORTS ====================
         function generateMonthlyReport() {
