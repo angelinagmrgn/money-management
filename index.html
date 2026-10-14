@@ -3625,30 +3625,37 @@
         }
 
         // ==================== RESET DATA ====================
-        function resetAllData() {
+        async function resetAllData() {
             if (!confirm('Yakin ingin reset semua data? Tindakan ini tidak dapat dibatalkan!')) {
                 return;
             }
-            
-            if (confirm('Semua transaksi, kategori (kecuali default), dan budget akan dihapus. Lanjutkan?')) {
-                transactions = [];
-                budget = 0;
-                savings = [];
-                categories = [...defaultCategories];
-                reminders = [];
-                
-                saveData();
-                updateDashboard();
-                loadTransactions();
-                loadRecentTransactions();
-                updateBudgetDisplay();
-                loadSavings();
-                loadReminders();
-                displayCategories();
-                loadManageCategories();
-                
-                showNotification('Semua data telah direset!', 'success');
+
+            if (!confirm('Semua transaksi, tabungan, pengingat, dan budget akan dihapus untuk SEMUA anggota ruang ini (termasuk partner Anda). Kategori tidak ikut dihapus. Lanjutkan?')) {
+                return;
             }
+
+            // Hapus data ruang ini di Supabase (bukan hanya di layar)
+            const tables = ['transactions', 'savings', 'reminders', 'budgets'];
+            for (const table of tables) {
+                const { error } = await sb.from(table).delete().eq('couple_id', coupleId);
+                if (error) {
+                    showNotification('Gagal reset (' + table + '): ' + error.message, 'error');
+                    await loadData();
+                    refreshAll();
+                    return;
+                }
+            }
+
+            await loadData();
+            refreshAll();
+
+            // Kalau masih ada data, berarti database menolak penghapusan (izin/RLS)
+            if (transactions.length || savings.length || reminders.length || budget > 0) {
+                showNotification('Sebagian data tidak terhapus. Cek izin hapus (RLS) di Supabase.', 'warning');
+                return;
+            }
+
+            showNotification('Semua data telah direset!', 'success');
         }
 
         // ==================== SAMPLE DATA ====================
