@@ -1434,6 +1434,7 @@
                             <div class="budget-progress-fill" id="budgetProgressFill" style="width: 0%"></div>
                         </div>
                         <div class="budget-status-text" id="budgetStatusText">Budget belum diatur</div>
+                        <div class="budget-status-text" id="budgetAuditText" style="font-size: 11px; opacity: 0.8;"></div>
                     </div>
                 </div>
 
@@ -2060,6 +2061,7 @@
         let savings = [];
         let reminders = [];
         let budget = 0;
+        let budgetMeta = null;
         let currentPageView = 'dashboard';
         let currentManageCategoryFilter = 'income';
         
@@ -2139,36 +2141,6 @@
         applyFilters();
     }
 
-        // WAJIB: filter by couple_id
-        async function loadData() {
-            const [t, c, s, r, b, m] = await Promise.all([
-            sb.from('transactions').select('*').eq('couple_id', coupleId),
-            sb.from('categories').select('*').eq('couple_id', coupleId),
-            sb.from('savings').select('*').eq('couple_id', coupleId),
-            sb.from('reminders').select('*').eq('couple_id', coupleId),
-            sb.from('budgets').select('*').eq('couple_id', coupleId).maybeSingle(),
-            sb.from('couple_members').select('*').eq('couple_id', coupleId)
-        ]);
-
-        members = Object.fromEntries((m.data || []).map(x => [x.user_id, x.display_name]));
-
-        transactions = (t.data || []).map(x => ({
-            id: x.id, type: x.type, description: x.description,
-            amount: Number(x.amount), categoryId: x.category_id,
-            categoryName: x.category_name, date: x.date, createdBy: x.created_by
-        }));
-        categories = (c.data || []).map(x => ({ id: x.id, name: x.name, type: x.type }));
-        savings = (s.data || []).map(x => ({
-            id: x.id, name: x.name, targetAmount: Number(x.target_amount),
-            currentAmount: Number(x.current_amount), targetDate: x.target_date
-        }));
-        reminders = (r.data || []).map(x => ({
-            id: x.id, name: x.name, amount: Number(x.amount), dueDate: x.due_date
-        }));
-        budget = b.data ? Number(b.data.amount) : 0;
-    }
-        
-
         // ==================== SIDEBAR NAVIGATION ====================
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
@@ -2212,30 +2184,36 @@
         // ==================== STORAGE ====================
         async function loadData() {
             const [t, c, s, r, b, m] = await Promise.all([
-                sb.from('transactions').select('*'),
-                sb.from('categories').select('*'),
-                sb.from('savings').select('*'),
-                sb.from('reminders').select('*'),
-                sb.from('budgets').select('*').maybeSingle(),
-                sb.from('couple_members').select('*')
+                sb.from('transactions').select('*').eq('couple_id', coupleId),
+                sb.from('categories').select('*').eq('couple_id', coupleId),
+                sb.from('savings').select('*').eq('couple_id', coupleId),
+                sb.from('reminders').select('*').eq('couple_id', coupleId),
+                sb.from('budgets').select('*').eq('couple_id', coupleId).maybeSingle(),
+                sb.from('couple_members').select('*').eq('couple_id', coupleId)
             ]);
-            
+
             members = Object.fromEntries((m.data || []).map(x => [x.user_id, x.display_name]));
+
+            const audit = x => ({
+                createdBy: x.created_by, createdAt: x.created_at,
+                updatedBy: x.updated_by, updatedAt: x.updated_at
+            });
 
             transactions = (t.data || []).map(x => ({
                 id: x.id, type: x.type, description: x.description,
                 amount: Number(x.amount), categoryId: x.category_id,
-                categoryName: x.category_name, date: x.date, createdBy: x.created_by
+                categoryName: x.category_name, date: x.date, ...audit(x)
             }));
-            categories = c.data || [];
+            categories = (c.data || []).map(x => ({ id: x.id, name: x.name, type: x.type, ...audit(x) }));
             savings = (s.data || []).map(x => ({
                 id: x.id, name: x.name, targetAmount: Number(x.target_amount),
-                currentAmount: Number(x.current_amount), targetDate: x.target_date
+                currentAmount: Number(x.current_amount), targetDate: x.target_date, ...audit(x)
             }));
             reminders = (r.data || []).map(x => ({
-                id: x.id, name: x.name, amount: Number(x.amount), dueDate: x.due_date
+                id: x.id, name: x.name, amount: Number(x.amount), dueDate: x.due_date, ...audit(x)
             }));
             budget = b.data ? Number(b.data.amount) : 0;
+            budgetMeta = b.data ? audit(b.data) : null;
         }
 
         async function saveData() {
@@ -2259,9 +2237,56 @@
             loadTransactions(); 
             loadRecentTransactions();
             updateBudgetDisplay(); 
+            updateBudgetAudit();
             loadSavings(); 
             loadReminders();
             displayManageCategories();
+        }
+
+        // ==================== AUDIT: SIAPA YANG MENGUBAH ====================
+        function formatDateTime(ts) {
+            return new Date(ts).toLocaleString('id-ID', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        function escapeHtml(str) {
+            return String(str ?? '').replace(/[&<>"']/g, ch => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[ch]));
+        }
+
+        function memberName(userId) {
+            if (!userId) return '';
+            return escapeHtml(members[userId] || 'Pasangan');
+        }
+
+        function auditText(createdBy, createdAt, updatedBy, updatedAt) {
+            const creator = memberName(createdBy);
+            const editor = memberName(updatedBy);
+            const parts = [];
+
+            if (creator) parts.push(`Dibuat oleh <strong>${creator}</strong>`);
+
+            const wasEdited = updatedAt && createdAt &&
+                (new Date(updatedAt) - new Date(createdAt)) > 5000;
+
+            if (wasEdited && editor) {
+                parts.push(`diubah oleh <strong>${editor}</strong> (${formatDateTime(updatedAt)})`);
+            } else if (creator && createdAt) {
+                parts.push(formatDateTime(createdAt));
+            }
+
+            if (parts.length === 0) return '';
+            return `<div style="margin-top: 4px; font-size: 11px; color: var(--text-lighter);">
+                <i class="fas fa-user-edit"></i> ${parts.join(' • ')}</div>`;
+        }
+
+        function updateBudgetAudit() {
+            const el = document.getElementById('budgetAuditText');
+            if (!el) return;
+            if (!budgetMeta || !budgetMeta.updatedBy) { el.textContent = ''; return; }
+            el.textContent = `Terakhir diatur oleh ${members[budgetMeta.updatedBy] || 'Pasangan'} • ${formatDateTime(budgetMeta.updatedAt)}`;
         }
 
         // ==================== DASHBOARD ====================
@@ -2314,7 +2339,7 @@
                 <div class="recent-item ${t.type}">
                     <div class="recent-info">
                         <div class="recent-desc">${t.description}</div>
-                        <div class="recent-category">${t.categoryName} • ${formatDate(t.date)}</div>
+                        <div class="recent-category">${t.categoryName} • ${formatDate(t.date)}${t.createdBy ? ' • oleh <strong>' + memberName(t.createdBy) + '</strong>' : ''}</div>
                     </div>
                     <div class="recent-amount ${t.type}">
                         ${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}
@@ -2512,6 +2537,7 @@
                                     ${t.type === 'income' ? '+' : '-'}${formatCurrency(t.amount)}
                                 </strong>
                             </div>
+                            ${auditText(t.createdBy, t.createdAt, t.updatedBy, t.updatedAt)}
                         </div>
                         <div class="item-actions">
                             <button class="delete-btn" onclick="deleteTransaction(${t.id})">
@@ -2821,6 +2847,7 @@
                     <div class="manage-category-info">
                         <div class="manage-category-name">${c.name}</div>
                         <div class="manage-category-type">${c.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}</div>
+                        ${auditText(c.createdBy, c.createdAt, c.updatedBy, c.updatedAt)}
                     </div>
                     <div class="manage-category-actions">
                         <button class="edit-btn" onclick="openModal('editCategory', ${c.id})">
@@ -2880,7 +2907,7 @@
                 
                 // Progress bar HTML
                 const progressBar = `
-                    <<div style="margin: 8px 0 8px 0; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;">
+                    <div style="margin: 8px 0 8px 0; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;">
                         <div style="height: 100%; width: ${progress}%;  background: ${progress >= 100 ? 'var(--success)' : 'var(--primary)'}; 
                              border-radius: 4px; transition: width 0.3s ease;"></div>
                     </div>
@@ -2896,6 +2923,7 @@
                                 Target: ${formatDate(s.targetDate)}
                                 ${daysLeft > 0 ? `(${daysLeft} hari lagi)` : '(Jatuh tempo)'}
                             </div>
+                            ${auditText(s.createdBy, s.createdAt, s.updatedBy, s.updatedAt)}
                         </div>
                         <div class="item-actions">
                             <button class="edit-btn" onclick="openUpdateSavingModal(${s.id})">
@@ -3123,6 +3151,7 @@
                                 ${formatDate(r.dueDate)} 
                                 ${daysLeft > 0 ? `(${daysLeft} hari lagi)` : daysLeft === 0 ? '(Hari ini)' : '(Terlambat)'}
                             </div>
+                            ${auditText(r.createdBy, r.createdAt, r.updatedBy, r.updatedAt)}
                         </div>
                         <div class="item-actions">
                             <button class="delete-btn" onclick="deleteReminder(${r.id})">
