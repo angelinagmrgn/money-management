@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Keuangan — DompetKu</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">DompetKu</div>
+    <div class="nav-links">
+      <span id="user-greeting" class="user-greeting">Halo!</span>
+      <button id="logout-btn" class="btn btn-outline btn-sm">Keluar</button>
+    </div>
+  </nav>
+
+  <main class="container">
+    <!-- Ringkasan Saldo -->
+    <section class="summary-grid">
+      <div class="card">
+        <span class="label">Total Saldo</span>
+        <h2 id="total-balance">Rp 0</h2>
+      </div>
+      <div class="card income">
+        <span class="label">Pemasukan</span>
+        <h2 id="total-income">Rp 0</h2>
+      </div>
+      <div class="card expense">
+        <span class="label">Pengeluaran</span>
+        <h2 id="total-expense">Rp 0</h2>
+      </div>
+    </section>
+
+    <!-- Form Tambah Transaksi -->
+    <section class="card form-section">
+      <h3>Tambah Transaksi Baru</h3>
+      <form id="transaction-form" class="tx-form">
+        <input type="text" id="tx-desc" placeholder="Keterangan (misal: Makan siang, Gaji)" required>
+        <input type="number" id="tx-amount" placeholder="Nominal (Rp)" min="1" required>
+        <select id="tx-type">
+          <option value="expense">Pengeluaran (-)</option>
+          <option value="income">Pemasukan (+)</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Simpan</button>
+      </form>
+    </section>
+
+    <!-- Riwayat Transaksi -->
+    <section class="card">
+      <h3>Riwayat Transaksi</h3>
+      <ul id="transaction-list" class="tx-list"></ul>
+    </section>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
