@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk atau daftar | Money Management</title>
+    <meta name="robots" content="noindex">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 27'%3E%3Ccircle cx='12' cy='13.5' r='10.5' fill='%23219c91'/%3E%3Ccircle cx='24' cy='13.5' r='10.5' fill='%236a5ae0' fill-opacity='.85'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --ink: #0e3b38;
+            --ink-soft: #17504c;
+            --teal: #219c91;
+            --teal-deep: #1a7d74;
+            --teal-deeper: #146b63;
+            --violet: #6a5ae0;
+            --paper: #f5f9f8;
+            --white: #ffffff;
+            --text: #1b2a33;
+            --muted: #566673;
+            --line: #cfdad7;
+            --danger: #b4281f;
+            --danger-bg: #fdeceb;
+            --ok: #0f6b47;
+            --ok-bg: #e5f6ee;
+            --info-bg: #e8f1f8;
+            --display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+            --body: 'Figtree', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        [hidden] { display: none !important; }
+
+        body {
+            font-family: var(--body);
+            color: var(--text);
+            background: var(--paper);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: inherit; }
+        :focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; }
+
+        .auth { display: grid; grid-template-columns: minmax(340px, 5fr) 6fr; min-height: 100vh; }
+
+        /* ---------- Panel kiri ---------- */
+        .brand-panel {
+            background:
+                linear-gradient(var(--ink), var(--ink)) padding-box;
+            color: #e8f3f1;
+            padding: 36px 48px 40px;
+            display: flex; flex-direction: column; justify-content: space-between; gap: 40px;
+            position: relative; overflow: hidden;
+        }
+        .brand-panel::before {
+            /* garis buku kas */
+            content: ''; position: absolute; inset: 0; pointer-events: none;
+            background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 35px, rgba(255,255,255,0.06) 35px, rgba(255,255,255,0.06) 36px);
+        }
+        .brand-panel > * { position: relative; }
+
+        .logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 19px; letter-spacing: -0.01em; }
+        .logo svg { width: 36px; height: 27px; flex: none; }
+
+        .brand-copy h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 3.4vw, 46px); line-height: 1.05; letter-spacing: -0.02em; max-width: 14ch; }
+        .brand-copy p { margin-top: 16px; font-size: 17px; line-height: 1.55; color: #bcd6d2; max-width: 38ch; }
+
+        .mini-ledger { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 6px 16px; max-width: 360px; }
+        .mini-ledger .row { display: flex; align-items: center; gap: 12px; padding: 12px 0; font-size: 15px; }
+        .mini-ledger .row + .row { border-top: 1px dashed rgba(255,255,255,0.18); }
+        .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+        .dot.a { background: #43d1c4; }
+        .dot.b { background: #a79cff; }
+        .mini-ledger .what { flex: 1; min-width: 0; }
+        .mini-ledger .who { display: block; font-size: 12.5px; color: #9fc2bd; margin-top: 1px; }
+        .mini-ledger .amt { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+        /* ---------- Panel kanan ---------- */
+        .form-panel { padding: 36px 48px 48px; display: flex; flex-direction: column; }
+        .back { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 500; padding: 6px 0; }
+        .back:hover { color: var(--ink); }
+        .back svg { width: 16px; height: 16px; }
+
+        .form-wrap { width: 100%; max-width: 420px; margin: auto; padding: 24px 0; }
+
+        .tabs { display: grid; grid-template-columns: 1fr 1fr; background: #e3ece9; border-radius: 12px; padding: 4px; margin-bottom: 28px; }
+        .tab { border: none; background: transparent; font: inherit; font-weight: 600; font-size: 15px; color: var(--muted); padding: 11px 8px; border-radius: 9px; cursor: pointer; }
+        .tab[aria-selected="true"] { background: var(--white); color: var(--ink); box-shadow: 0 1px 3px rgba(14,59,56,0.14); }
+
+        .form-wrap h2 { font-family: var(--display); font-size: 28px; line-height: 1.15; letter-spacing: -0.015em; color: var(--ink); }
+        .lead { margin-top: 8px; color: var(--muted); font-size: 16px; line-height: 1.5; }
+
+        form { margin-top: 24px; }
+        .field { margin-bottom: 18px; }
+        .field label { display: block; font-weight: 600; font-size: 15px; margin-bottom: 7px; }
+        .field .hint { font-size: 13.5px; color: var(--muted); margin-top: 6px; }
+
+        .input-wrap { position: relative; }
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: 100%; height: 50px; padding: 0 14px; font: inherit; font-size: 16px; color: var(--text);
+            background: var(--white); border: 1.5px solid var(--line); border-radius: 10px;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        input:hover { border-color: #aebfbb; }
+        input:focus { outline: none; border-color: var(--teal-deep); box-shadow: 0 0 0 4px rgba(33,156,145,0.18); }
+        .input-wrap input { padding-right: 76px; }
+        .toggle-pw { position: absolute; right: 6px; top: 6px; height: 38px; padding: 0 12px; border: none; background: transparent; color: var(--teal-deeper); font: inherit; font-weight: 600; font-size: 14px; border-radius: 8px; cursor: pointer; }
+        .toggle-pw:hover { background: #e6f1ef; }
+
+        .btn { width: 100%; height: 52px; border: none; border-radius: 10px; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; transition: background .15s, transform .05s; }
+        .btn:active { transform: translateY(1px); }
+        .btn-primary { background: var(--teal-deep); color: #fff; }
+        .btn-primary:hover { background: var(--teal-deeper); }
+        .btn-secondary { background: var(--white); color: var(--ink); border: 1.5px solid var(--ink); }
+        .btn-secondary:hover { background: #eaf2f0; }
+        .btn[disabled] { opacity: .65; cursor: progress; }
+
+        .msg { margin-top: 16px; padding: 12px 14px; border-radius: 10px; font-size: 15px; line-height: 1.45; }
+        .msg.error { background: var(--danger-bg); color: var(--danger); }
+        .msg.success { background: var(--ok-bg); color: var(--ok); }
+        .msg.info { background: var(--info-bg); color: #1d4a68; }
+
+        .switch { margin-top: 22px; text-align: center; color: var(--muted); font-size: 15px; }
+        .link-btn { border: none; background: none; font: inherit; font-weight: 700; color: var(--teal-deeper); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 0; }
+
+        .divider { display: flex; align-items: center; gap: 14px; margin: 24px 0; color: var(--muted); font-size: 14px; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+
+        .code-box { margin: 24px 0 8px; padding: 22px 16px; text-align: center; background: var(--white); border: 2px dashed var(--teal); border-radius: 14px; }
+        .code-box .code { font-family: var(--display); font-weight: 700; font-size: 42px; letter-spacing: 0.18em; padding-left: 0.18em; color: var(--ink); font-variant-numeric: tabular-nums; }
+        .code-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+        .code-actions.single { grid-template-columns: 1fr; }
+        .steps-note { margin: 18px 0 22px; padding-left: 20px; color: var(--muted); font-size: 15px; line-height: 1.6; }
+
+        input.code-input { text-transform: uppercase; letter-spacing: 0.16em; font-weight: 600; }
+
+        .account-line { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .account-line strong { color: var(--text); font-weight: 600; word-break: break-all; }
+
+        .state-center { text-align: center; padding: 40px 0; color: var(--muted); }
+        .spinner { width: 34px; height: 34px; margin: 0 auto 14px; border-radius: 50%; border: 3px solid #d5e2df; border-top-color: var(--teal-deep); animation: spin .8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .state-center.error .spinner { display: none; }
+        .state-center .btn { margin-top: 16px; max-width: 220px; }
+
+        @media (max-width: 880px) {
+            .auth { grid-template-columns: 1fr; }
+            .brand-panel { padding: 22px 20px 26px; gap: 18px; }
+            .brand-copy h1 { font-size: 28px; max-width: none; }
+            .brand-copy p { font-size: 15.5px; margin-top: 10px; }
+            .mini-ledger { display: none; }
+            .form-panel { padding: 16px 20px 36px; }
+            .form-wrap { margin: 0 auto; padding-top: 8px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+        }
+    </style>
+</head>
+<body>
+<main class="auth">
+    <aside class="brand-panel">
+        <a class="logo" href="index.html" aria-label="Money Management, ke beranda">
+            <svg viewBox="0 0 36 27" aria-hidden="true">
+                <circle cx="12" cy="13.5" r="10.5" fill="#43d1c4"/>
+                <circle cx="24" cy="13.5" r="10.5" fill="#a79cff" style="mix-blend-mode:screen"/>
+            </svg>
+            Money Management
+        </a>
+
+        <div class="brand-copy">
+            <h1 id="panelTitle">Masuk ke ruang berdua</h1>
+            <p id="panelText">Lanjutkan mencatat keuangan bersama pasangan. Datanya sama di HP dan di komputer.</p>
+        </div>
+
+        <div class="mini-ledger" aria-hidden="true">
+            <div class="row"><span class="dot a"></span><span class="what">Makan malam<span class="who">dicatat Dina</span></span><span class="amt">-Rp 85.000</span></div>
+            <div class="row"><span class="dot b"></span><span class="what">Bayar listrik<span class="who">dicatat Raka</span></span><span class="amt">-Rp 420.000</span></div>
+        </div>
+    </aside>
+
+    <section class="form-panel">
+        <a class="back" href="index.html">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg>
+            Kembali ke beranda
+        </a>
+
+        <div class="form-wrap">
+
+            <!-- Memeriksa login -->
+            <div id="viewLoading" class="state-center" role="status" aria-live="polite">
+                <div class="spinner"></div>
+                <p id="loadingText">Memeriksa akun Anda...</p>
+                <button id="retryBtn" class="btn btn-secondary" type="button" hidden onclick="route()">Coba lagi</button>
+            </div>
+
+            <!-- Masuk / Daftar -->
+            <div id="viewAuth" hidden>
+                <div class="tabs" role="tablist" aria-label="Masuk atau daftar">
+                    <button class="tab" role="tab" id="tabLogin" aria-controls="panelLogin" aria-selected="true" type="button">Masuk</button>
+                    <button class="tab" role="tab" id="tabSignup" aria-controls="panelSignup" aria-selected="false" type="button">Daftar</button>
+                </div>
+
+                <div id="panelLogin" role="tabpanel" aria-labelledby="tabLogin">
+                    <h2>Masuk</h2>
+                    <p class="lead">Gunakan email dan password akun Anda.</p>
+                    <form id="loginForm" novalidate>
+                        <div class="field">
+                            <label for="loginEmail">Email</label>
+                            <input id="loginEmail" type="email" autocomplete="email" inputmode="email" required>
+                        </div>
+                        <div class="field">
+                            <label for="loginPassword">Password</label>
+                            <div class="input-wrap">
+                                <input id="loginPassword" type="password" autocomplete="current-password" required>
+                                <button class="toggle-pw" type="button" data-target="loginPassword" aria-label="Tampilkan password">Lihat</button>
+                            </div>
+                        </div>
+                        <button id="loginBtn" class="btn btn-primary" type="submit">Masuk</button>
+                        <div id="loginMsg" class="msg" role="alert" hidden></div>
+                    </form>
+                    <p class="switch">Belum punya akun? <button class="link-btn" type="button" data-go="signup">Daftar</button></p>
+                </div>
+
+                <div id="panelSignup" role="tabpanel" aria-labelledby="tabSignup" hidden>
+                    <h2>Buat akun</h2>
+                    <p class="lead">Setiap orang punya akun sendiri. Setelah itu, kalian berbagi satu ruang.</p>
+                    <form id="signupForm" novalidate>
+                        <div class="field">
+                            <label for="signupEmail">Email</label>
+                            <input id="signupEmail" type="email" autocomplete="email" inputmode="email" required>
+                        </div>
+                        <div class="field">
+                            <label for="signupPassword">Password</label>
+                            <div class="input-wrap">
+                                <input id="signupPassword" type="password" autocomplete="new-password" minlength="6" required aria-describedby="pwHint">
+                                <button class="toggle-pw" type="button" data-target="signupPassword" aria-label="Tampilkan password">Lihat</button>
+                            </div>
+                            <p class="hint" id="pwHint">Minimal 6 karakter.</p>
+                        </div>
+                        <div class="field">
+                            <label for="signupPassword2">Ulangi password</label>
+                            <input id="signupPassword2" type="password" autocomplete="new-password" required>
+                        </div>
+                        <button id="signupBtn" class="btn btn-primary" type="submit">Buat akun</button>
+                        <div id="signupMsg" class="msg" role="alert" hidden></div>
+                    </form>
+                    <p class="switch">Sudah punya akun? <button class="link-btn" type="button" data-go="login">Masuk</button></p>
+                </div>
+            </div>
+
+            <!-- Buat atau gabung ruang -->
+            <div id="viewRoom" hidden>
+                <h2>Ruang berdua</h2>
+                <p class="lead">Ruang adalah tempat data keuangan kalian disimpan bersama.</p>
+
+                <div class="field" style="margin-top:24px">
+                    <label for="roomName">Nama panggilan Anda</label>
+                    <input id="roomName" type="text" maxlength="30" autocomplete="nickname" required aria-describedby="nameHint">
+                    <p class="hint" id="nameHint">Nama ini tampil di catatan, supaya pasangan tahu siapa yang mencatat.</p>
+                </div>
+
+                <button id="createBtn" class="btn btn-primary" type="button">Buat ruang baru</button>
+
+                <div class="divider">atau gabung ruang pasangan</div>
+
+                <div class="field">
+                    <label for="roomCode">Kode undangan dari pasangan</label>
+                    <input id="roomCode" class="code-input" type="text" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false">
+                </div>
+                <button id="joinBtn" class="btn btn-secondary" type="button">Gabung ke ruang</button>
+
+                <div id="roomMsg" class="msg" role="alert" hidden></div>
+
+                <div class="account-line">
+                    <span>Masuk sebagai <strong id="accountEmail"></strong></span>
+                    <button class="link-btn" type="button" id="logoutBtn">Keluar</button>
+                </div>
+            </div>
+
+            <!-- Kode undangan setelah ruang dibuat -->
+            <div id="viewCode" hidden>
+                <h2>Ruang berdua siap</h2>
+                <p class="lead">Kirim kode ini ke pasangan Anda.</p>
+                <div class="code-box">
+                    <div class="code" id="codeText" aria-label="Kode undangan"></div>
+                </div>
+                <div class="code-actions" id="codeActions">
+                    <button id="copyBtn" class="btn btn-secondary" type="button">Salin kode</button>
+                    <button id="shareBtn" class="btn btn-secondary" type="button" hidden>Bagikan</button>
+                </div>
+                <ol class="steps-note">
+                    <li>Pasangan membuka halaman ini dan membuat akun sendiri.</li>
+                    <li>Di langkah Ruang berdua, dia memasukkan kode di atas.</li>
+                </ol>
+                <button id="openAppBtn" class="btn btn-primary" type="button">Buka aplikasi</button>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script>
+    // ==================== SUPABASE ====================
+    const SUPABASE_URL = 'https://znfmiplrtnfzvxdjspmm.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZm1pcGxydG5menZ4ZGpzcG1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3NzgxNDMsImV4cCI6MjEwNzM1NDE0M30.9o32BTopCWyS-oTuT6i-t6BbfLD_5CUZKReNsOSgfos';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const $ = id => document.getElementById(id);
+    let currentUser = null;
+    let createdCode = '';
+
+    // ==================== TAMPILAN ====================
+    const COPY = {
+        login:  ['Masuk ke ruang berdua', 'Lanjutkan mencatat keuangan bersama pasangan. Datanya sama di HP dan di komputer.'],
+        signup: ['Buat akun, lalu ajak pasangan', 'Setiap orang punya akun sendiri. Setelah itu, kalian berbagi satu ruang lewat kode undangan.'],
+        room:   ['Siapkan ruang berdua', 'Buat ruang baru lalu kirim kodenya ke pasangan, atau gabung dengan kode dari pasangan.'],
+        code:   ['Ruang berdua siap', 'Kirim kode undangan ke pasangan supaya dia bisa bergabung dan ikut mencatat.']
+    };
+
+    function setCopy(key) {
+        $('panelTitle').textContent = COPY[key][0];
+        $('panelText').textContent = COPY[key][1];
+    }
+
+    function showView(name) {
+        ['viewLoading', 'viewAuth', 'viewRoom', 'viewCode'].forEach(v => { $(v).hidden = (v !== name); });
+    }
+
+    function showTab(which, focus) {
+        const login = which === 'login';
+        $('tabLogin').setAttribute('aria-selected', String(login));
+        $('tabSignup').setAttribute('aria-selected', String(!login));
+        $('panelLogin').hidden = !login;
+        $('panelSignup').hidden = login;
+        setCopy(login ? 'login' : 'signup');
+        history.replaceState(null, '', login ? location.pathname + location.search : '#daftar');
+        if (focus) $(login ? 'loginEmail' : 'signupEmail').focus();
+    }
+
+    function setMsg(id, text, type) {
+        const el = $(id);
+        if (!text) { el.hidden = true; el.textContent = ''; return; }
+        el.className = 'msg ' + (type || 'error');
+        el.textContent = text;
+        el.hidden = false;
+    }
+
+    function setBusy(btn, busy, label) {
+        if (busy) { btn.dataset.label = btn.textContent; btn.textContent = label; }
+        else if (btn.dataset.label) { btn.textContent = btn.dataset.label; }
+        btn.disabled = busy;
+    }
+
+    function friendlyError(err) {
+        const m = ((err && err.message) || '').toLowerCase();
+        if (m.includes('invalid login credentials')) return 'Email atau password salah. Periksa lagi, atau daftar kalau belum punya akun.';
+        if (m.includes('email not confirmed')) return 'Email belum dikonfirmasi. Buka email konfirmasi dari kami, lalu coba masuk lagi.';
+        if (m.includes('already registered') || m.includes('already been registered')) return 'Email ini sudah terdaftar. Silakan masuk.';
+        if (m.includes('password should') || m.includes('at least 6')) return 'Password minimal 6 karakter.';
+        if (m.includes('valid email') || m.includes('invalid email') || m.includes('unable to validate email')) return 'Format email belum benar.';
+        if (m.includes('rate limit') || m.includes('too many') || (err && err.status === 429)) return 'Terlalu banyak percobaan. Tunggu beberapa menit, lalu coba lagi.';
+        if (m.includes('failed to fetch') || m.includes('network')) return 'Tidak bisa terhubung. Periksa koneksi internet Anda.';
+        return 'Terjadi kesalahan: ' + ((err && err.message) || 'tidak diketahui');
+    }
+
+    // ==================== ALUR: SESI -> RUANG -> APLIKASI ====================
+    async function route() {
+        showView('viewLoading');
+        $('viewLoading').classList.remove('error');
+        $('retryBtn').hidden = true;
+        $('loadingText').textContent = 'Memeriksa akun Anda...';
+
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) {
+            currentUser = null;
+            showView('viewAuth');
+            showTab(location.hash === '#daftar' ? 'signup' : 'login', false);
+            return;
+        }
+        currentUser = session.user;
+
+        const { data: mem, error } = await sb.from('couple_members')
+            .select('couple_id')
+            .eq('user_id', currentUser.id)
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            $('viewLoading').classList.add('error');
+            $('loadingText').textContent = 'Gagal memuat data akun. Periksa koneksi internet Anda, lalu coba lagi.';
+            $('retryBtn').hidden = false;
+            return;
+        }
+
+        if (mem) { window.location.replace('app.html'); return; }
+
+        $('accountEmail').textContent = currentUser.email || '';
+        setCopy('room');
+        showView('viewRoom');
+        $('roomName').focus();
+    }
+
+    // ==================== MASUK ====================
+    $('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setMsg('loginMsg', '');
+        const email = $('loginEmail').value.trim();
+        const password = $('loginPassword').value;
+        if (!email || !password) return setMsg('loginMsg', 'Isi email dan password.');
+
+        const btn = $('loginBtn');
+        setBusy(btn, true, 'Memproses...');
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        setBusy(btn, false);
+        if (error) return setMsg('loginMsg', friendlyError(error));
+        await route();
+    });
+
+    // ==================== DAFTAR ====================
+    $('signupForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        setMsg('signupMsg', '');
+        const email = $('signupEmail').value.trim();
+        const password = $('signupPassword').value;
+        const password2 = $('signupPassword2').value;
+
+        if (!email || !password) return setMsg('signupMsg', 'Isi email dan password.');
+        if (password.length < 6) return setMsg('signupMsg', 'Password minimal 6 karakter.');
+        if (password !== password2) return setMsg('signupMsg', 'Kedua password belum sama. Ketik ulang password yang sama.');
+
+        const btn = $('signupBtn');
+        setBusy(btn, true, 'Membuat akun...');
+        const { data, error } = await sb.auth.signUp({
+            email, password,
+            options: { emailRedirectTo: new URL('masuk.html', window.location.href).href }
+        });
+        setBusy(btn, false);
+
+        if (error) return setMsg('signupMsg', friendlyError(error));
+
+        // Supabase tidak memberi error untuk email yang sudah ada; ciri-cirinya identities kosong
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+            $('loginEmail').value = email;
+            showTab('login', true);
+            return setMsg('loginMsg', 'Email ini sudah terdaftar. Masukkan password Anda untuk masuk.', 'info');
+        }
+
+        if (data.session) return route();
+
+        // Perlu konfirmasi email
+        $('loginEmail').value = email;
+        $('signupForm').reset();
+        showTab('login', true);
+        setMsg('loginMsg', 'Akun dibuat. Kami mengirim email konfirmasi ke ' + email + '. Buka emailnya, lalu masuk di sini.', 'success');
+    });
+
+    // ==================== RUANG PASANGAN ====================
+    function makeCode() {
+        // Tanpa 0/O dan 1/I supaya mudah dibaca dan diketik
+        const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        const bytes = new Uint8Array(6);
+        crypto.getRandomValues(bytes);
+        return Array.from(bytes, b => alphabet[b % alphabet.length]).join('');
+    }
+
+    async function createRoom() {
+        setMsg('roomMsg', '');
+        const displayName = $('roomName').value.trim();
+        if (!displayName) { $('roomName').focus(); return setMsg('roomMsg', 'Isi nama panggilan Anda dulu.'); }
+
+        const btn = $('createBtn');
+        setBusy(btn, true, 'Membuat ruang...');
+
+        let couple = null, lastError = null, code = '';
+        for (let i = 0; i < 3 && !couple; i++) {
+            code = makeCode();
+            const res = await sb.from('couples').insert({ invite_code: code }).select().single();
+            if (res.error) {
+                lastError = res.error;
+                if (res.error.code !== '23505') break; // hanya ulangi jika kode kebetulan kembar
+            } else {
+                couple = res.data;
+            }
+        }
+        if (!couple) {
+            setBusy(btn, false);
+            return setMsg('roomMsg', 'Ruang belum bisa dibuat. ' + friendlyError(lastError));
+        }
+
+        const { error } = await sb.from('couple_members').insert({
+            couple_id: couple.id, user_id: currentUser.id, display_name: displayName
+        });
+        setBusy(btn, false);
+        if (error) return setMsg('roomMsg', 'Ruang dibuat, tapi Anda belum bisa masuk ke dalamnya. ' + friendlyError(error));
+
+        createdCode = code;
+        $('codeText').textContent = code;
+        $('shareBtn').hidden = !navigator.share;
+        $('codeActions').classList.toggle('single', !navigator.share);
+        setCopy('code');
+        showView('viewCode');
+        $('copyBtn').focus();
+    }
+
+    async function joinRoom() {
+        setMsg('roomMsg', '');
+        const displayName = $('roomName').value.trim();
+        const code = $('roomCode').value.trim().replace(/[^A-Za-z0-9]/g, '');
+        if (!displayName) { $('roomName').focus(); return setMsg('roomMsg', 'Isi nama panggilan Anda dulu.'); }
+        if (!code) { $('roomCode').focus(); return setMsg('roomMsg', 'Masukkan kode undangan dari pasangan Anda.'); }
+
+        const btn = $('joinBtn');
+        setBusy(btn, true, 'Mencari ruang...');
+
+        const { data: couple, error: findError } = await sb.from('couples')
+            .select('id').ilike('invite_code', code).limit(1).maybeSingle();
+        if (findError || !couple) {
+            setBusy(btn, false);
+            return setMsg('roomMsg', findError ? friendlyError(findError) : 'Kode undangan tidak ditemukan. Periksa kode dari pasangan Anda, lalu coba lagi.');
+        }
+
+        const { error } = await sb.from('couple_members').insert({
+            couple_id: couple.id, user_id: currentUser.id, display_name: displayName
+        });
+        setBusy(btn, false);
+        if (error && error.code !== '23505') return setMsg('roomMsg', 'Belum bisa bergabung. ' + friendlyError(error));
+
+        window.location.replace('app.html');
+    }
+
+    $('createBtn').addEventListener('click', createRoom);
+    $('joinBtn').addEventListener('click', joinRoom);
+    $('roomCode').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
+    $('roomName').addEventListener('keydown', e => { if (e.key === 'Enter') createRoom(); });
+
+    $('copyBtn').addEventListener('click', async () => {
+        const btn = $('copyBtn');
+        try {
+            await navigator.clipboard.writeText(createdCode);
+        } catch (_) {
+            const t = document.createElement('textarea');
+            t.value = createdCode; document.body.appendChild(t); t.select();
+            try { document.execCommand('copy'); } catch (__) {}
+            t.remove();
+        }
+        btn.textContent = 'Kode tersalin';
+        setTimeout(() => { btn.textContent = 'Salin kode'; }, 2000);
+    });
+
+    $('shareBtn').addEventListener('click', () => {
+        navigator.share({
+            title: 'Undangan Money Management',
+            text: 'Gabung ke ruang keuangan kita di Money Management. Kode undangan: ' + createdCode,
+            url: new URL('masuk.html#daftar', window.location.href).href
+        }).catch(() => {});
+    });
+
+    $('openAppBtn').addEventListener('click', () => window.location.replace('app.html'));
+
+    $('logoutBtn').addEventListener('click', async () => {
+        await sb.auth.signOut();
+        currentUser = null;
+        await route();
+    });
+
+    // ==================== INTERAKSI KECIL ====================
+    document.querySelectorAll('.toggle-pw').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const input = $(btn.dataset.target);
+            const hidden = input.type === 'password';
+            input.type = hidden ? 'text' : 'password';
+            btn.textContent = hidden ? 'Sembunyikan' : 'Lihat';
+            btn.setAttribute('aria-label', hidden ? 'Sembunyikan password' : 'Tampilkan password');
+        });
+    });
+
+    document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.go, true)));
+    $('tabLogin').addEventListener('click', () => showTab('login', true));
+    $('tabSignup').addEventListener('click', () => showTab('signup', true));
+    window.addEventListener('hashchange', () => { if (!$('viewAuth').hidden) showTab(location.hash === '#daftar' ? 'signup' : 'login', false); });
+
+    route();
+</script>
+</body>
+</html>
